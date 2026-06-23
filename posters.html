@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LIULIAN Posters</title>
+    <meta
+      name="description"
+      content="LIULIAN 海报项目页面。"
+    />
+    <link rel="icon" href="./assets/durian.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-page="posters">
+    <header class="site-header">
+      <a class="brand" href="./index.html">L . I .</a>
+      <nav class="site-nav" aria-label="主导航">
+        <a href="./index.html">Works</a>
+        <a href="mailto:liulian080936@gmail.com">Contact</a>
+      </nav>
+    </header>
+
+    <main class="page-shell poster-archive-page">
+      <section class="poster-archive-hero" aria-label="海报归档介绍">
+        <div class="poster-archive-intro">
+          <span class="poster-archive-kicker">Poster Archive</span>
+          <h1>Selected posters from 2026 to 2023.</h1>
+          <a class="poster-back" href="./index.html">Back to Works</a>
+        </div>
+
+        <div class="poster-archive-meta" id="posterArchiveMeta" aria-live="polite"></div>
+      </section>
+
+      <div class="poster-layout" id="posterLayout" aria-label="海报归档"></div>
+
+      <div class="poster-drawer-backdrop" id="posterDrawerBackdrop" hidden></div>
+      <aside
+        class="poster-drawer"
+        id="posterDrawer"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="posterDrawerTitle"
+        aria-hidden="true"
+        hidden
+      >
+        <div class="poster-drawer-shell">
+          <div class="poster-drawer-rail" aria-label="查看控制">
+            <button class="poster-rail-button poster-rail-button-close" id="posterDrawerClose" type="button" aria-label="关闭查看">
+              ×
+            </button>
+            <button class="poster-rail-button" id="posterDrawerPrev" type="button" aria-label="查看上一张海报">
+              ←
+            </button>
+            <button class="poster-rail-button" id="posterDrawerNext" type="button" aria-label="查看下一张海报">
+              →
+            </button>
+          </div>
+
+          <div class="poster-drawer-body">
+            <div class="poster-drawer-stage" id="posterDrawerStage">
+              <div class="poster-drawer-figure-frame">
+                <div class="poster-drawer-figure">
+                  <img id="posterDrawerImage" alt="" />
+                  <div class="poster-drawer-thumbs" id="posterDrawerThumbs"></div>
+                </div>
+              </div>
+            </div>
+
+            <aside class="poster-drawer-meta">
+              <div class="poster-drawer-actions" aria-label="海报操作">
+                <span class="poster-drawer-action">like <span aria-hidden="true">♡</span></span>
+                <span class="poster-drawer-action">collect <span aria-hidden="true">⤴</span></span>
+                <span class="poster-drawer-action">share <span aria-hidden="true">↗</span></span>
+              </div>
+
+              <section class="poster-drawer-section poster-drawer-section-title">
+                <div class="poster-drawer-overline">
+                  <span id="posterDrawerCounter"></span>
+                  <span id="posterDrawerSerial"></span>
+                </div>
+                <p id="posterDrawerTitle"></p>
+                <div class="poster-drawer-facts">
+                  <span id="posterDrawerSize"></span>
+                  <span id="posterDrawerLocation"></span>
+                  <span id="posterDrawerCategory"></span>
+                </div>
+              </section>
+
+              <section class="poster-drawer-section">
+                <span id="posterDrawerDetails"></span>
+                <p id="posterDrawerDescription"></p>
+                <p id="posterDrawerCredits"></p>
+              </section>
+
+              <section class="poster-drawer-section">
+                <span class="poster-drawer-label">awards</span>
+                <p id="posterDrawerAwards"></p>
+              </section>
+
+              <section class="poster-drawer-section poster-drawer-section-inline">
+                <span class="poster-drawer-label">author</span>
+                <div class="poster-drawer-chip-row">
+                  <strong id="posterDrawerAuthor"></strong>
+                  <span class="poster-drawer-badge">LI</span>
+                </div>
+              </section>
+
+              <section class="poster-drawer-section poster-drawer-section-inline">
+                <span class="poster-drawer-label">view more of</span>
+                <div class="poster-drawer-chip-row">
+                  <strong id="posterDrawerCollection"></strong>
+                  <span class="poster-drawer-badge poster-drawer-badge-accent" id="posterDrawerCollectionTag"></span>
+                </div>
+              </section>
+
+              <p class="poster-drawer-footer" id="posterDrawerFooter"></p>
+            </aside>
+          </div>
+        </div>
+      </aside>
+
+      <footer class="site-footer minimal-footer poster-archive-footer">
+        <a href="./index.html">Selected Works</a>
+        <a href="mailto:liulian080936@gmail.com">Contact</a>
+      </footer>
+    </main>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
