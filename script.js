@@ -538,8 +538,11 @@ function initPosterDrawer() {
   const layout = document.querySelector("#posterLayout");
   const drawer = document.querySelector("#posterDrawer");
   const backdrop = document.querySelector("#posterDrawerBackdrop");
+  const stage = document.querySelector("#posterDrawerStage");
   const image = document.querySelector("#posterDrawerImage");
-  const thumbs = document.querySelector("#posterDrawerThumbs");
+  const minimap = document.querySelector("#projectDrawerMinimap");
+  const minimapList = document.querySelector("#projectDrawerMinimapList");
+  const minimapBalance = document.querySelector("#posterDrawerBalance");
   const counter = document.querySelector("#posterDrawerCounter");
   const serial = document.querySelector("#posterDrawerSerial");
   const title = document.querySelector("#posterDrawerTitle");
@@ -562,8 +565,11 @@ function initPosterDrawer() {
     !layout ||
     !drawer ||
     !backdrop ||
+    !stage ||
     !image ||
-    !thumbs ||
+    !minimap ||
+    !minimapList ||
+    !minimapBalance ||
     !counter ||
     !serial ||
     !title ||
@@ -590,6 +596,8 @@ function initPosterDrawer() {
   let activeFlatIndex = 0;
   let activeImageIndex = 0;
   let hideDrawerTimer = 0;
+  let edgeWheelDelta = 0;
+  let edgeWheelLockUntil = 0;
 
   const clearHideTimer = () => {
     if (!hideDrawerTimer) return;
@@ -610,6 +618,23 @@ function initPosterDrawer() {
   };
 
   const getPosterReference = (flatIndex) => posterArchiveFlatList.at(flatIndex) || null;
+  const getActivePosterItem = () => {
+    if (!activePoster) return null;
+    const src = activePoster.images[activeImageIndex];
+    if (!src) return null;
+
+    return {
+      index: activeImageIndex,
+      src,
+      fileName: activePoster.files[activeImageIndex],
+    };
+  };
+
+  const resetStagePosition = () => {
+    stage.scrollTop = 0;
+    stage.scrollLeft = 0;
+    edgeWheelDelta = 0;
+  };
 
   const syncImageFacts = () => {
     if (!activePoster) return;
@@ -622,35 +647,87 @@ function initPosterDrawer() {
     size.textContent = "offset, loading image size";
   };
 
-  const renderDrawerThumbs = () => {
+  const renderMinimapList = () => {
     if (!activePoster || activePoster.images.length <= 1) {
-      thumbs.innerHTML = "";
-      thumbs.hidden = true;
+      minimap.hidden = true;
+      minimapBalance.hidden = true;
+      minimapList.innerHTML = "";
       return;
     }
 
-    thumbs.hidden = false;
-    thumbs.innerHTML = activePoster.images
+    minimap.hidden = false;
+    minimapBalance.hidden = false;
+    minimapList.innerHTML = activePoster.images
       .map(
         (src, index) => `
           <button
-            class="poster-drawer-thumb${index === activeImageIndex ? " is-active" : ""}"
+            class="project-drawer-mini${index === activeImageIndex ? " is-active" : ""}"
             type="button"
             data-image-index="${index}"
             aria-label="查看第 ${index + 1} 张海报"
           >
             <img class="deferred-image" data-src="${src}" alt="" loading="lazy" decoding="async" aria-hidden="true" />
+            <span class="project-drawer-mini-viewport" aria-hidden="true"></span>
           </button>
         `,
       )
       .join("");
-    queueDeferredImages(thumbs);
+    queueDeferredImages(minimapList);
+  };
+
+  const syncMinimapState = () => {
+    const buttons = minimapList.querySelectorAll(".project-drawer-mini");
+    if (!buttons.length || !activePoster || activePoster.images.length <= 1) return;
+
+    let activeButton = null;
+
+    buttons.forEach((button) => {
+      const isActive = Number(button.dataset.imageIndex) === activeImageIndex;
+      button.classList.toggle("is-active", isActive);
+      button.classList.remove("is-scrollable");
+
+      const overlay = button.querySelector(".project-drawer-mini-viewport");
+      if (overlay) {
+        overlay.style.height = "0px";
+        overlay.style.transform = "";
+      }
+
+      if (isActive) {
+        activeButton = button;
+      }
+    });
+
+    if (!activeButton) return;
+
+    activeButton.scrollIntoView({ block: "nearest", inline: "nearest" });
+
+    const activeThumbImage = activeButton.querySelector("img");
+    const overlay = activeButton.querySelector(".project-drawer-mini-viewport");
+    const previewHeight = activeThumbImage?.getBoundingClientRect().height || 0;
+    const scrollRange = Math.max(0, stage.scrollHeight - stage.clientHeight);
+
+    if (!previewHeight || !overlay || !scrollRange) return;
+
+    const viewportHeight = Math.min(
+      previewHeight,
+      Math.max(24, (stage.clientHeight / stage.scrollHeight) * previewHeight),
+    );
+    const progress = scrollRange ? stage.scrollTop / scrollRange : 0;
+    const offset = (previewHeight - viewportHeight) * progress;
+
+    activeButton.classList.add("is-scrollable");
+    overlay.style.height = `${viewportHeight}px`;
+    overlay.style.transform = `translate3d(0, ${offset}px, 0)`;
   };
 
   const renderDrawerPoster = () => {
     if (!activePoster) return;
 
-    image.src = activePoster.images[activeImageIndex];
+    const activeItem = getActivePosterItem();
+    if (!activeItem) return;
+
+    resetStagePosition();
+    image.src = activeItem.src;
     image.alt = buildImageAlt(activePoster, activeImageIndex);
     counter.textContent = `${String(activeFlatIndex + 1).padStart(2, "0")} / ${String(
       posterArchiveFlatList.length,
@@ -667,7 +744,7 @@ function initPosterDrawer() {
       activePoster.images.length > 1
         ? `A series of ${activePoster.images.length} posters selected from the ${activePoster.year} archive. Use the condensed stack to compare alternate versions of the same poster.`
         : `A single poster selected from the ${activePoster.year} archive.`;
-    credits.textContent = `archive: LIULIAN poster archive, current file: ${activePoster.files[activeImageIndex]}, viewing: ${activeImageIndex + 1} of ${activePoster.images.length}.`;
+    credits.textContent = `archive: LIULIAN poster archive, current file: ${activeItem.fileName}, viewing: ${activeImageIndex + 1} of ${activePoster.images.length}.`;
     awards.textContent =
       activePoster.images.length > 1
         ? `.${activePoster.images.length} poster variants in this folded stack`
@@ -676,9 +753,12 @@ function initPosterDrawer() {
     collection.textContent = getCollectionLabel(activePoster.year);
     collectionTag.textContent = getCollectionToken(activePoster.year);
     footer.textContent = "© 2026, LIULIAN poster archive. all rights reserved.";
-    syncImageFacts();
+    size.textContent = "offset, loading image size";
 
-    renderDrawerThumbs();
+    renderMinimapList();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(syncMinimapState);
+    });
   };
 
   const setActivePoster = (flatIndex, resetImageIndex = true) => {
@@ -712,9 +792,11 @@ function initPosterDrawer() {
       backdrop.hidden = false;
       requestAnimationFrame(() => {
         document.body.classList.add("poster-drawer-open");
+        drawer.classList.add("is-project-drawer");
         drawer.classList.add("is-open");
         backdrop.classList.add("is-open");
         drawer.setAttribute("aria-hidden", "false");
+        requestAnimationFrame(syncMinimapState);
         closeButton.focus({ preventScroll: true });
       });
       return;
@@ -722,14 +804,17 @@ function initPosterDrawer() {
 
     drawer.setAttribute("aria-hidden", "false");
     document.body.classList.add("poster-drawer-open");
+    drawer.classList.add("is-project-drawer");
     drawer.classList.add("is-open");
     backdrop.classList.add("is-open");
+    requestAnimationFrame(syncMinimapState);
   };
 
   const closeDrawer = () => {
     if (drawer.hidden) return;
 
     clearHideTimer();
+    drawer.classList.remove("is-project-drawer");
     drawer.classList.remove("is-open");
     backdrop.classList.remove("is-open");
     drawer.setAttribute("aria-hidden", "true");
@@ -739,6 +824,7 @@ function initPosterDrawer() {
       drawer.hidden = true;
       backdrop.hidden = true;
       image.removeAttribute("src");
+      resetStagePosition();
 
       if (activeCard) {
         activeCard.focus({ preventScroll: true });
@@ -762,6 +848,54 @@ function initPosterDrawer() {
     renderDrawerPoster();
   };
 
+  const jumpWithinImage = (direction) => {
+    const scrollRange = Math.max(0, stage.scrollHeight - stage.clientHeight);
+    const atTop = stage.scrollTop <= 1;
+    const atBottom = stage.scrollTop + stage.clientHeight >= stage.scrollHeight - 1;
+
+    if (!scrollRange || (direction > 0 && atBottom) || (direction < 0 && atTop)) {
+      stepDrawerImage(direction);
+      return;
+    }
+
+    stage.scrollBy({
+      top: direction * Math.max(220, stage.clientHeight * 0.88),
+      behavior: "auto",
+    });
+  };
+
+  const handleStageWheel = (event) => {
+    const delta = event.deltaY;
+    if (!delta || !activePoster || activePoster.images.length <= 1) return;
+
+    const atTop = stage.scrollTop <= 1;
+    const atBottom = stage.scrollTop + stage.clientHeight >= stage.scrollHeight - 1;
+    const direction = delta > 0 ? 1 : -1;
+    const reachedEdge = direction > 0 ? atBottom : atTop;
+
+    if (!reachedEdge) {
+      edgeWheelDelta = 0;
+      return;
+    }
+
+    event.preventDefault();
+
+    const now = performance.now();
+    if (now < edgeWheelLockUntil) return;
+
+    if (edgeWheelDelta && Math.sign(edgeWheelDelta) !== Math.sign(delta)) {
+      edgeWheelDelta = 0;
+    }
+
+    edgeWheelDelta += delta;
+
+    if (Math.abs(edgeWheelDelta) < 90) return;
+
+    edgeWheelDelta = 0;
+    edgeWheelLockUntil = now + 240;
+    stepDrawerImage(direction);
+  };
+
   layout.addEventListener("click", (event) => {
     const card = event.target.closest(".poster-card");
     if (!card) return;
@@ -779,19 +913,34 @@ function initPosterDrawer() {
     openDrawer(card, Number(card.dataset.groupIndex), Number(card.dataset.posterIndex));
   });
 
-  thumbs.addEventListener("click", (event) => {
-    const thumb = event.target.closest(".poster-drawer-thumb");
-    if (!thumb) return;
+  minimapList.addEventListener("click", (event) => {
+    const button = event.target.closest(".project-drawer-mini");
+    if (!button) return;
 
-    activeImageIndex = Number(thumb.dataset.imageIndex);
+    activeImageIndex = Number(button.dataset.imageIndex);
     renderDrawerPoster();
   });
 
-  image.addEventListener("load", syncImageFacts);
+  image.addEventListener("load", () => {
+    syncImageFacts();
+    syncMinimapState();
+  });
+  minimapList.addEventListener(
+    "load",
+    (event) => {
+      if (event.target.tagName === "IMG") {
+        syncMinimapState();
+      }
+    },
+    true,
+  );
   closeButton.addEventListener("click", closeDrawer);
   prevButton.addEventListener("click", () => stepDrawerPoster(-1));
   nextButton.addEventListener("click", () => stepDrawerPoster(1));
   backdrop.addEventListener("click", closeDrawer);
+  stage.addEventListener("scroll", syncMinimapState);
+  stage.addEventListener("wheel", handleStageWheel, { passive: false });
+  window.addEventListener("resize", syncMinimapState);
 
   window.addEventListener("keydown", (event) => {
     if (drawer.hidden) return;
@@ -801,7 +950,19 @@ function initPosterDrawer() {
       return;
     }
 
-    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+    if (event.key === "ArrowDown" || event.key === "PageDown") {
+      event.preventDefault();
+      jumpWithinImage(1);
+      return;
+    }
+
+    if (event.key === "ArrowUp" || event.key === "PageUp") {
+      event.preventDefault();
+      jumpWithinImage(-1);
+      return;
+    }
+
+    if (event.key === "ArrowRight") {
       event.preventDefault();
       if (event.shiftKey) {
         stepDrawerPoster(1);
@@ -812,7 +973,7 @@ function initPosterDrawer() {
       return;
     }
 
-    if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+    if (event.key === "ArrowLeft") {
       event.preventDefault();
       if (event.shiftKey) {
         stepDrawerPoster(-1);
