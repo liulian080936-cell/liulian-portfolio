@@ -294,9 +294,71 @@ let activePosterPixelHover = null;
 let posterArchiveGroups = [];
 let posterArchiveFlatList = [];
 let activeProjectCase = null;
+let deferredImageObserver = null;
+const targetCursorSelector = "a, button, [role='button'], .cursor-target";
 
 const lerp = (a, b, n) => (1 - n) * a + n * b;
 const encodeImagePath = (folder, file) => encodeURI(`${folder}/${file}`);
+
+function scheduleNonCriticalTask(task, timeout = 600) {
+  if ("requestIdleCallback" in window) {
+    return window.requestIdleCallback(task, { timeout });
+  }
+
+  return window.setTimeout(task, Math.min(timeout, 180));
+}
+
+function revealDeferredImage(image) {
+  const source = image.dataset.src;
+  if (!source) return;
+
+  image.src = source;
+  image.removeAttribute("data-src");
+  image.removeAttribute("data-deferred-observed");
+
+  if (image.complete) {
+    image.classList.add("is-ready");
+    return;
+  }
+
+  image.addEventListener("load", () => image.classList.add("is-ready"), { once: true });
+}
+
+function getDeferredImageObserver() {
+  if (deferredImageObserver || !("IntersectionObserver" in window)) {
+    return deferredImageObserver;
+  }
+
+  deferredImageObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        deferredImageObserver.unobserve(entry.target);
+        revealDeferredImage(entry.target);
+      });
+    },
+    { rootMargin: "420px 0px" },
+  );
+
+  return deferredImageObserver;
+}
+
+function queueDeferredImages(scope = document) {
+  const images = scope.querySelectorAll("img[data-src]");
+  if (!images.length) return;
+
+  const observer = getDeferredImageObserver();
+  if (!observer) {
+    images.forEach(revealDeferredImage);
+    return;
+  }
+
+  images.forEach((image) => {
+    if (image.dataset.deferredObserved === "true") return;
+    image.dataset.deferredObserved = "true";
+    observer.observe(image);
+  });
+}
 
 function buildPosterArchiveGroups() {
   return posterArchiveSource.map((group) => {
@@ -363,6 +425,62 @@ function buildPosterArchiveGroups() {
   });
 }
 
+function renderPosterGroup(group, groupIndex) {
+  return `
+    <section class="poster-group">
+      <div class="poster-header">
+        <h2 class="poster-year">${group.year}</h2>
+        <span class="poster-count">${group.seriesCount} series / ${group.posterCount} posters</span>
+      </div>
+      <div class="poster-grid">
+        ${group.posters
+          .map((poster, posterIndex) => {
+            const stackLayers = poster.stack.slice(0, 3).reverse();
+
+            return `
+              <article
+                class="poster-card"
+                tabindex="0"
+                role="button"
+                aria-haspopup="dialog"
+                aria-label="Open ${poster.title}, ${group.year}"
+                data-group-index="${groupIndex}"
+                data-poster-index="${posterIndex}"
+              >
+                <div class="poster-card-visual${poster.stackCount > 1 ? " is-stacked" : ""}">
+                  ${stackLayers
+                    .map(
+                      (image, index) => `
+                        <span class="poster-stack-layer" style="--stack-layer:${stackLayers.length - index};">
+                          <img class="deferred-image" data-src="${image}" alt="" loading="lazy" decoding="async" aria-hidden="true" />
+                        </span>
+                      `,
+                    )
+                    .join("")}
+                  <div class="card-media">
+                    <img class="deferred-image" data-src="${poster.cover}" alt="${poster.alt}" loading="lazy" decoding="async" />
+                  </div>
+                  <canvas class="poster-pixel-canvas" aria-hidden="true"></canvas>
+                  ${
+                    poster.stackCount > 1
+                      ? `<span class="poster-stack-badge">+${poster.stackCount - 1}</span>`
+                      : ""
+                  }
+                </div>
+                <div class="poster-card-copy">
+                  <strong>${poster.serial}</strong>
+                  <p>${poster.title}, ${group.year}</p>
+                  <span>${poster.details}</span>
+                </div>
+              </article>
+            `;
+          })
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
 function renderPosterPage() {
   const layout = document.querySelector("#posterLayout");
   if (!layout) return;
@@ -387,65 +505,26 @@ function renderPosterPage() {
     `;
   }
 
-  layout.innerHTML = posterArchiveGroups
-    .map(
-      (group, groupIndex) => `
-        <section class="poster-group">
-          <div class="poster-header">
-            <h2 class="poster-year">${group.year}</h2>
-            <span class="poster-count">${group.seriesCount} series / ${group.posterCount} posters</span>
-          </div>
-          <div class="poster-grid">
-            ${group.posters
-              .map(
-                (poster, posterIndex) => {
-                  const stackLayers = poster.stack.slice(0, 3).reverse();
+  layout.innerHTML = "";
 
-                  return `
-                  <article
-                    class="poster-card"
-                    tabindex="0"
-                    role="button"
-                    aria-haspopup="dialog"
-                    aria-label="Open ${poster.title}, ${group.year}"
-                    data-group-index="${groupIndex}"
-                    data-poster-index="${posterIndex}"
-                  >
-                    <div class="poster-card-visual${poster.stackCount > 1 ? " is-stacked" : ""}">
-                      ${stackLayers
-                        .map(
-                          (image, index) => `
-                            <span class="poster-stack-layer" style="--stack-layer:${stackLayers.length - index};">
-                              <img src="${image}" alt="" loading="lazy" decoding="async" aria-hidden="true" />
-                            </span>
-                          `,
-                        )
-                        .join("")}
-                      <div class="card-media">
-                        <img src="${poster.cover}" alt="${poster.alt}" loading="lazy" decoding="async" />
-                      </div>
-                      <canvas class="poster-pixel-canvas" aria-hidden="true"></canvas>
-                      ${
-                        poster.stackCount > 1
-                          ? `<span class="poster-stack-badge">+${poster.stackCount - 1}</span>`
-                          : ""
-                      }
-                    </div>
-                    <div class="poster-card-copy">
-                      <strong>${poster.serial}</strong>
-                      <p>${poster.title}, ${group.year}</p>
-                      <span>${poster.details}</span>
-                    </div>
-                  </article>
-                `;
-                },
-              )
-              .join("")}
-          </div>
-        </section>
-      `,
-    )
-    .join("");
+  let nextGroupIndex = 0;
+  const renderNextGroup = () => {
+    const group = posterArchiveGroups[nextGroupIndex];
+    if (!group) return;
+
+    layout.insertAdjacentHTML("beforeend", renderPosterGroup(group, nextGroupIndex));
+    const insertedGroup = layout.lastElementChild;
+    if (insertedGroup) {
+      queueDeferredImages(insertedGroup);
+    }
+
+    nextGroupIndex += 1;
+    if (nextGroupIndex < posterArchiveGroups.length) {
+      requestAnimationFrame(renderNextGroup);
+    }
+  };
+
+  requestAnimationFrame(renderNextGroup);
 }
 
 function initPosterDrawer() {
@@ -553,11 +632,12 @@ function initPosterDrawer() {
             data-image-index="${index}"
             aria-label="查看第 ${index + 1} 张海报"
           >
-            <img src="${src}" alt="" loading="lazy" decoding="async" aria-hidden="true" />
+            <img class="deferred-image" data-src="${src}" alt="" loading="lazy" decoding="async" aria-hidden="true" />
           </button>
         `,
       )
       .join("");
+    queueDeferredImages(thumbs);
   };
 
   const renderDrawerPoster = () => {
@@ -991,6 +1071,8 @@ class PosterPixelHover {
 
 function initPosterPixelHover() {
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (!window.matchMedia("(pointer: fine)").matches) return;
+  if (!window.matchMedia("(min-width: 1024px)").matches) return;
 
   const cards = document.querySelectorAll("body[data-page='posters'] .poster-card");
   if (!cards.length) return;
@@ -1074,7 +1156,7 @@ function buildProjectGallery(project) {
           data-project-image-index="${imageIndex}"
         >
           <div class="project-gallery-media">
-            <img src="${src}" alt="${escapeHtml(project.title)} frame ${frame}" loading="lazy" decoding="async" />
+            <img class="deferred-image" data-src="${src}" alt="${escapeHtml(project.title)} frame ${frame}" loading="lazy" decoding="async" />
           </div>
           <figcaption>${frame}</figcaption>
         </figure>
@@ -1163,7 +1245,6 @@ function renderProjectPage() {
       </figure>
 
       <section class="project-case-gallery" aria-label="${escapeHtml(project.title)} 项目图集">
-        ${buildProjectGallery(project)}
       </section>
 
       <footer class="project-case-footer">
@@ -1179,6 +1260,13 @@ function renderProjectPage() {
       </footer>
     </section>
   `;
+
+  const gallery = host.querySelector(".project-case-gallery");
+  scheduleNonCriticalTask(() => {
+    if (!gallery || activeProjectCase?.slug !== project.slug) return;
+    gallery.innerHTML = buildProjectGallery(project);
+    queueDeferredImages(gallery);
+  }, 180);
 }
 
 function initProjectDrawer() {
@@ -1250,6 +1338,7 @@ function initProjectDrawer() {
   let hideDrawerTimer = 0;
   let edgeWheelDelta = 0;
   let edgeWheelLockUntil = 0;
+  let minimapRendered = false;
 
   const clearHideTimer = () => {
     if (!hideDrawerTimer) return;
@@ -1284,12 +1373,14 @@ function initProjectDrawer() {
             data-project-minimap-index="${item.index}"
             aria-label="跳转到第 ${item.index + 1} 张图片"
           >
-            <img src="${item.src}" alt="" loading="lazy" decoding="async" aria-hidden="true" />
+            <img class="deferred-image" data-src="${item.src}" alt="" loading="lazy" decoding="async" aria-hidden="true" />
             <span class="project-drawer-mini-viewport" aria-hidden="true"></span>
           </button>
         `,
       )
       .join("");
+    minimapRendered = true;
+    queueDeferredImages(minimapList);
   };
 
   const syncMinimapState = () => {
@@ -1358,9 +1449,11 @@ function initProjectDrawer() {
     collectionTag.textContent = project.number;
     footer.textContent = "© 2026, LIULIAN project archive. all rights reserved.";
     size.textContent = "offset, loading image size";
-    requestAnimationFrame(() => {
-      requestAnimationFrame(syncMinimapState);
-    });
+    if (minimapRendered) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(syncMinimapState);
+      });
+    }
   };
 
   const openDrawer = (card, nextIndex) => {
@@ -1369,6 +1462,11 @@ function initProjectDrawer() {
     activeCard = card;
     activeIndex = nextIndex;
     clearHideTimer();
+
+    if (!minimapRendered) {
+      renderMinimapList();
+    }
+
     renderDrawerItem();
 
     if (drawer.hidden) {
@@ -1518,9 +1616,6 @@ function initProjectDrawer() {
   stage.addEventListener("wheel", handleStageWheel, { passive: false });
   window.addEventListener("resize", syncMinimapState);
 
-  renderMinimapList();
-  syncMinimapState();
-
   window.addEventListener("keydown", (event) => {
     if (drawer.hidden) return;
 
@@ -1548,98 +1643,134 @@ function initProjectDrawer() {
   });
 }
 
-function initCrosshairCursor() {
-  if (document.body?.dataset.page === "project") return;
+function initTargetCursor() {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   if (!window.matchMedia("(pointer: fine)").matches) return;
+  if (!window.matchMedia("(min-width: 960px)").matches) return;
 
   const root = document.documentElement;
-  root.classList.add("has-crosshair");
+  root.classList.add("has-target-cursor");
 
-  const noiseXId = "crosshair-noise-x";
-  const noiseYId = "crosshair-noise-y";
+  const cornerSize = 12;
+  const borderWidth = 3;
+  const hoverInset = borderWidth;
+  const defaultCornerPositions = [
+    { x: -cornerSize * 1.5, y: -cornerSize * 1.5 },
+    { x: cornerSize * 0.5, y: -cornerSize * 1.5 },
+    { x: cornerSize * 0.5, y: cornerSize * 0.5 },
+    { x: -cornerSize * 1.5, y: cornerSize * 0.5 },
+  ];
 
   const cursor = document.createElement("div");
-  cursor.className = "crosshair-cursor";
+  cursor.className = "target-cursor";
   cursor.setAttribute("aria-hidden", "true");
   cursor.innerHTML = `
-    <svg class="crosshair-defs" viewBox="0 0 1 1" aria-hidden="true">
-      <defs>
-        <filter id="${noiseXId}">
-          <feTurbulence class="crosshair-turbulence-x" type="fractalNoise" baseFrequency="0.000001" numOctaves="1" />
-          <feDisplacementMap in="SourceGraphic" scale="40"></feDisplacementMap>
-        </filter>
-        <filter id="${noiseYId}">
-          <feTurbulence class="crosshair-turbulence-y" type="fractalNoise" baseFrequency="0.000001" numOctaves="1" />
-          <feDisplacementMap in="SourceGraphic" scale="40"></feDisplacementMap>
-        </filter>
-      </defs>
-    </svg>
-    <div class="crosshair-line crosshair-line-horizontal"></div>
-    <div class="crosshair-line crosshair-line-vertical"></div>
+    <div class="target-cursor-visual">
+      <div class="target-cursor-dot"></div>
+      <div class="target-cursor-corner corner-tl"></div>
+      <div class="target-cursor-corner corner-tr"></div>
+      <div class="target-cursor-corner corner-br"></div>
+      <div class="target-cursor-corner corner-bl"></div>
+    </div>
   `;
 
   document.body.appendChild(cursor);
 
-  const horizontal = cursor.querySelector(".crosshair-line-horizontal");
-  const vertical = cursor.querySelector(".crosshair-line-vertical");
-  const turbulenceX = cursor.querySelector(".crosshair-turbulence-x");
-  const turbulenceY = cursor.querySelector(".crosshair-turbulence-y");
+  const visual = cursor.querySelector(".target-cursor-visual");
+  const corners = Array.from(cursor.querySelectorAll(".target-cursor-corner"));
 
   let mouseX = window.innerWidth * 0.5;
   let mouseY = window.innerHeight * 0.5;
   let renderedX = mouseX;
   let renderedY = mouseY;
   let isVisible = false;
-  let noiseFrameId = 0;
+  let renderFrameId = 0;
+  let activeTarget = null;
+  let leaveHandler = null;
 
   const setVisible = (visible) => {
     isVisible = visible;
     cursor.classList.toggle("is-visible", visible);
   };
 
-  const clearNoise = () => {
-    horizontal.style.filter = "none";
-    vertical.style.filter = "none";
-    turbulenceX.setAttribute("baseFrequency", "0.000001");
-    turbulenceY.setAttribute("baseFrequency", "0.000001");
+  const isValidTarget = (node) => {
+    if (!(node instanceof Element)) return false;
+    if (!node.matches(targetCursorSelector)) return false;
+    if (node.hasAttribute("disabled")) return false;
+    return node.getAttribute("aria-hidden") !== "true";
   };
 
-  const triggerNoise = () => {
-    cancelAnimationFrame(noiseFrameId);
+  const getTargetRect = (target) => target?.getBoundingClientRect() || null;
 
-    horizontal.style.filter = `url(#${noiseXId})`;
-    vertical.style.filter = `url(#${noiseYId})`;
-
-    const start = performance.now();
-    const duration = 500;
-
-    const updateNoise = (now) => {
-      const elapsed = now - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - progress;
-      const turbulence = Math.max(0.000001, eased);
-
-      turbulenceX.setAttribute("baseFrequency", String(turbulence));
-      turbulenceY.setAttribute("baseFrequency", String(turbulence));
-
-      if (progress < 1) {
-        noiseFrameId = requestAnimationFrame(updateNoise);
-      } else {
-        clearNoise();
-      }
-    };
-
-    noiseFrameId = requestAnimationFrame(updateNoise);
+  const setCornerPositions = (positions) => {
+    corners.forEach((corner, index) => {
+      const point = positions[index];
+      if (!point) return;
+      corner.style.transform = `translate3d(${point.x}px, ${point.y}px, 0)`;
+    });
   };
 
   const render = () => {
+    renderFrameId = 0;
     renderedX = lerp(renderedX, mouseX, 0.15);
     renderedY = lerp(renderedY, mouseY, 0.15);
 
-    vertical.style.transform = `translate3d(${renderedX}px, 0, 0)`;
-    horizontal.style.transform = `translate3d(0, ${renderedY}px, 0)`;
+    cursor.style.transform = `translate3d(${renderedX}px, ${renderedY}px, 0)`;
 
-    requestAnimationFrame(render);
+    if (activeTarget) {
+      const rect = getTargetRect(activeTarget);
+      if (rect) {
+        setCornerPositions([
+          { x: rect.left - renderedX - hoverInset, y: rect.top - renderedY - hoverInset },
+          {
+            x: rect.right - renderedX - cornerSize + hoverInset,
+            y: rect.top - renderedY - hoverInset,
+          },
+          {
+            x: rect.right - renderedX - cornerSize + hoverInset,
+            y: rect.bottom - renderedY - cornerSize + hoverInset,
+          },
+          {
+            x: rect.left - renderedX - hoverInset,
+            y: rect.bottom - renderedY - cornerSize + hoverInset,
+          },
+        ]);
+      }
+    }
+
+    if (Math.abs(renderedX - mouseX) > 0.08 || Math.abs(renderedY - mouseY) > 0.08) {
+      renderFrameId = requestAnimationFrame(render);
+    }
+  };
+
+  const scheduleRender = () => {
+    if (renderFrameId) return;
+    renderFrameId = requestAnimationFrame(render);
+  };
+
+  const releaseTarget = () => {
+    if (activeTarget && leaveHandler) {
+      activeTarget.removeEventListener("mouseleave", leaveHandler);
+    }
+
+    activeTarget = null;
+    leaveHandler = null;
+    cursor.classList.remove("is-targeting");
+    setCornerPositions(defaultCornerPositions);
+    scheduleRender();
+  };
+
+  const captureTarget = (target) => {
+    if (!isValidTarget(target) || activeTarget === target) return;
+
+    releaseTarget();
+    activeTarget = target;
+    cursor.classList.add("is-targeting");
+    leaveHandler = () => {
+      releaseTarget();
+    };
+    activeTarget.addEventListener("mouseleave", leaveHandler, { passive: true });
+    scheduleRender();
   };
 
   const handleMouseMove = (event) => {
@@ -1649,35 +1780,87 @@ function initCrosshairCursor() {
     if (!isVisible) {
       setVisible(true);
     }
+
+    scheduleRender();
+  };
+
+  const handleMouseOver = (event) => {
+    const target = event.target.closest(targetCursorSelector);
+    if (!target) return;
+    captureTarget(target);
   };
 
   const handleWindowLeave = (event) => {
     if (!event.relatedTarget) {
       setVisible(false);
+      releaseTarget();
     }
   };
 
-  const interactiveTargets = document.querySelectorAll("a, button, [role='button']");
+  const handleScrollOrResize = () => {
+    if (!activeTarget) return;
 
-  interactiveTargets.forEach((target) => {
-    target.addEventListener("mouseenter", triggerNoise);
-    target.addEventListener("mouseleave", clearNoise);
-    target.addEventListener("focus", triggerNoise);
-    target.addEventListener("blur", clearNoise);
-  });
+    const hovered = document.elementFromPoint(mouseX, mouseY);
+    if (!hovered || (hovered !== activeTarget && hovered.closest(targetCursorSelector) !== activeTarget)) {
+      releaseTarget();
+      return;
+    }
+
+    scheduleRender();
+  };
 
   window.addEventListener("mousemove", handleMouseMove);
+  window.addEventListener("mouseover", handleMouseOver, { passive: true });
   window.addEventListener("mouseout", handleWindowLeave);
-  window.addEventListener("blur", () => setVisible(false));
+  window.addEventListener("scroll", handleScrollOrResize, { passive: true });
+  window.addEventListener("resize", handleScrollOrResize);
+  window.addEventListener("mousedown", () => cursor.classList.add("is-pressed"));
+  window.addEventListener("mouseup", () => cursor.classList.remove("is-pressed"));
+  window.addEventListener("blur", () => {
+    setVisible(false);
+    releaseTarget();
+    cancelAnimationFrame(renderFrameId);
+    renderFrameId = 0;
+  });
 
-  clearNoise();
-  requestAnimationFrame(render);
+  setCornerPositions(defaultCornerPositions);
+  cursor.style.transform = `translate3d(${renderedX}px, ${renderedY}px, 0)`;
+  visual.style.setProperty("--target-cursor-spin-duration", "2s");
 }
 
-renderPosterPage();
-initPosterDrawer();
-initPosterPixelHover();
-initHomeProjectMediaRatios();
-renderProjectPage();
-initProjectDrawer();
-initCrosshairCursor();
+function initPage() {
+  const page = document.body?.dataset.page;
+
+  if (page === "posters") {
+    renderPosterPage();
+    scheduleNonCriticalTask(() => {
+      initPosterDrawer();
+      initPosterPixelHover();
+      initTargetCursor();
+    }, 260);
+    return;
+  }
+
+  if (page === "project") {
+    renderProjectPage();
+    scheduleNonCriticalTask(() => {
+      initProjectDrawer();
+      initTargetCursor();
+    }, 220);
+    return;
+  }
+
+  if (page === "home") {
+    initHomeProjectMediaRatios();
+    scheduleNonCriticalTask(() => {
+      initTargetCursor();
+    }, 700);
+    return;
+  }
+
+  scheduleNonCriticalTask(() => {
+    initTargetCursor();
+  }, 400);
+}
+
+initPage();

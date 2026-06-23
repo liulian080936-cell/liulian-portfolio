@@ -19,8 +19,8 @@ html {
 }
 
 @media (pointer: fine) {
-  html.has-crosshair,
-  html.has-crosshair * {
+  html.has-target-cursor,
+  html.has-target-cursor * {
     cursor: none !important;
   }
 }
@@ -37,6 +37,15 @@ img {
   display: block;
   width: 100%;
   max-width: 100%;
+}
+
+img.deferred-image {
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+img.deferred-image.is-ready {
+  opacity: 1;
 }
 
 a {
@@ -58,9 +67,14 @@ a {
   align-items: center;
   justify-content: space-between;
   padding: 18px var(--page-gutter) 16px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.96);
   border-bottom: 1px solid rgba(15, 15, 15, 0.05);
+}
+
+@media (min-width: 1024px) {
+  .site-header {
+    backdrop-filter: blur(10px);
+  }
 }
 
 .brand {
@@ -803,43 +817,102 @@ body[data-page="project"] .project-image-trigger:focus-visible .project-gallery-
   }
 }
 
-.crosshair-cursor {
+.target-cursor {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
   pointer-events: none;
   z-index: 10000;
   opacity: 0;
-  transition: opacity 0.45s ease;
+  mix-blend-mode: difference;
+  transition: opacity 0.2s ease;
+  will-change: transform;
 }
 
-.crosshair-cursor.is-visible {
+.target-cursor.is-visible {
   opacity: 1;
 }
 
-.crosshair-defs {
-  position: absolute;
+.target-cursor-visual {
+  position: relative;
   width: 0;
   height: 0;
-  overflow: hidden;
+  animation: target-cursor-spin var(--target-cursor-spin-duration, 2s) linear infinite;
 }
 
-.crosshair-line {
+.target-cursor.is-targeting .target-cursor-visual {
+  animation-play-state: paused;
+}
+
+.target-cursor-dot {
   position: absolute;
   top: 0;
   left: 0;
-  background: #e1ff00;
-  mix-blend-mode: difference;
-  will-change: transform, opacity, filter;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: #ffffff;
+  transform: translate(-50%, -50%);
+  transition:
+    transform 0.2s ease,
+    background-color 0.15s ease;
 }
 
-.crosshair-line-horizontal {
-  width: 100%;
-  height: 1px;
+.target-cursor-corner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  border: 3px solid #ffffff;
+  transition:
+    transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 0.15s ease;
+  will-change: transform;
 }
 
-.crosshair-line-vertical {
-  width: 1px;
-  height: 100%;
+.target-cursor.is-targeting .target-cursor-corner {
+  transition-duration: 0.16s;
+}
+
+.target-cursor.is-pressed .target-cursor-visual {
+  transform: scale(0.92);
+}
+
+.target-cursor.is-pressed .target-cursor-dot {
+  transform: translate(-50%, -50%) scale(0.72);
+}
+
+.corner-tl {
+  border-right: none;
+  border-bottom: none;
+}
+
+.corner-tr {
+  border-left: none;
+  border-bottom: none;
+}
+
+.corner-br {
+  border-left: none;
+  border-top: none;
+}
+
+.corner-bl {
+  border-right: none;
+  border-top: none;
+}
+
+@keyframes target-cursor-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .hero-space {
