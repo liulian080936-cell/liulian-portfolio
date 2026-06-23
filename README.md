@@ -34,6 +34,7 @@ npm run build
 - 样式在 `styles.css`
 - 项目图片清单在 `assets/projects/manifest.js`
 - 新图直接放进 `assets/`
+- 首页预览图现在用 `assets/home/*.webp` 和 `assets/posters/home-band/*.webp`，替换原图后记得同步更新预览图
 - 每次改完后重新执行 `npm run build`
 
 不要手工改 `dist/`，它应该永远是构建产物。

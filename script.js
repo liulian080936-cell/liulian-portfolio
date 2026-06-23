@@ -416,13 +416,13 @@ function renderPosterPage() {
                         .map(
                           (image, index) => `
                             <span class="poster-stack-layer" style="--stack-layer:${stackLayers.length - index};">
-                              <img src="${image}" alt="" loading="lazy" aria-hidden="true" />
+                              <img src="${image}" alt="" loading="lazy" decoding="async" aria-hidden="true" />
                             </span>
                           `,
                         )
                         .join("")}
                       <div class="card-media">
-                        <img src="${poster.cover}" alt="${poster.alt}" loading="lazy" />
+                        <img src="${poster.cover}" alt="${poster.alt}" loading="lazy" decoding="async" />
                       </div>
                       <canvas class="poster-pixel-canvas" aria-hidden="true"></canvas>
                       ${
@@ -553,7 +553,7 @@ function initPosterDrawer() {
             data-image-index="${index}"
             aria-label="查看第 ${index + 1} 张海报"
           >
-            <img src="${src}" alt="" loading="lazy" aria-hidden="true" />
+            <img src="${src}" alt="" loading="lazy" decoding="async" aria-hidden="true" />
           </button>
         `,
       )
@@ -1074,7 +1074,7 @@ function buildProjectGallery(project) {
           data-project-image-index="${imageIndex}"
         >
           <div class="project-gallery-media">
-            <img src="${src}" alt="${escapeHtml(project.title)} frame ${frame}" loading="lazy" />
+            <img src="${src}" alt="${escapeHtml(project.title)} frame ${frame}" loading="lazy" decoding="async" />
           </div>
           <figcaption>${frame}</figcaption>
         </figure>
@@ -1158,7 +1158,7 @@ function renderProjectPage() {
         data-project-image-index="0"
       >
         <div class="project-case-lead-media">
-          <img src="${project.images[0]}" alt="${escapeHtml(project.title)} lead image" loading="eager" />
+          <img src="${project.images[0]}" alt="${escapeHtml(project.title)} lead image" loading="eager" decoding="async" fetchpriority="high" />
         </div>
       </figure>
 
@@ -1284,7 +1284,7 @@ function initProjectDrawer() {
             data-project-minimap-index="${item.index}"
             aria-label="跳转到第 ${item.index + 1} 张图片"
           >
-            <img src="${item.src}" alt="" loading="lazy" aria-hidden="true" />
+            <img src="${item.src}" alt="" loading="lazy" decoding="async" aria-hidden="true" />
             <span class="project-drawer-mini-viewport" aria-hidden="true"></span>
           </button>
         `,
