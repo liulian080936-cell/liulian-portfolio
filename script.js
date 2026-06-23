@@ -296,6 +296,13 @@ let posterArchiveFlatList = [];
 let activeProjectCase = null;
 let deferredImageObserver = null;
 const targetCursorSelector = "a, button, [role='button'], .cursor-target";
+const targetCursorFrameSelector = [
+  ".poster-card-visual",
+  ".project-case-lead-media",
+  ".project-gallery-media",
+  ".posters-band-strip",
+  ".card-media",
+].join(", ");
 
 const lerp = (a, b, n) => (1 - n) * a + n * b;
 const encodeImagePath = (folder, file) => encodeURI(`${folder}/${file}`);
@@ -1686,7 +1693,7 @@ function initTargetCursor() {
   let isVisible = false;
   let renderFrameId = 0;
   let activeTarget = null;
-  let leaveHandler = null;
+  let activeFrame = null;
 
   const setVisible = (visible) => {
     isVisible = visible;
@@ -1700,7 +1707,21 @@ function initTargetCursor() {
     return node.getAttribute("aria-hidden") !== "true";
   };
 
-  const getTargetRect = (target) => target?.getBoundingClientRect() || null;
+  const resolveTargetFrame = (target, source = null) => {
+    if (!(target instanceof Element)) return null;
+
+    const sourceFrame =
+      source instanceof Element ? source.closest(targetCursorFrameSelector) : null;
+    if (sourceFrame && target.contains(sourceFrame)) {
+      return sourceFrame;
+    }
+
+    if (target.matches(targetCursorFrameSelector)) {
+      return target;
+    }
+
+    return target.querySelector(targetCursorFrameSelector) || target;
+  };
 
   const setCornerPositions = (positions) => {
     corners.forEach((corner, index) => {
@@ -1717,8 +1738,8 @@ function initTargetCursor() {
 
     cursor.style.transform = `translate3d(${renderedX}px, ${renderedY}px, 0)`;
 
-    if (activeTarget) {
-      const rect = getTargetRect(activeTarget);
+    if (activeFrame) {
+      const rect = activeFrame.getBoundingClientRect();
       if (rect) {
         setCornerPositions([
           { x: rect.left - renderedX - hoverInset, y: rect.top - renderedY - hoverInset },
@@ -1749,27 +1770,23 @@ function initTargetCursor() {
   };
 
   const releaseTarget = () => {
-    if (activeTarget && leaveHandler) {
-      activeTarget.removeEventListener("mouseleave", leaveHandler);
-    }
-
     activeTarget = null;
-    leaveHandler = null;
+    activeFrame = null;
     cursor.classList.remove("is-targeting");
     setCornerPositions(defaultCornerPositions);
     scheduleRender();
   };
 
-  const captureTarget = (target) => {
-    if (!isValidTarget(target) || activeTarget === target) return;
+  const captureTarget = (target, source = null) => {
+    if (!isValidTarget(target)) return;
 
-    releaseTarget();
+    const frame = resolveTargetFrame(target, source);
+    if (!frame) return;
+    if (activeTarget === target && activeFrame === frame) return;
+
     activeTarget = target;
+    activeFrame = frame;
     cursor.classList.add("is-targeting");
-    leaveHandler = () => {
-      releaseTarget();
-    };
-    activeTarget.addEventListener("mouseleave", leaveHandler, { passive: true });
     scheduleRender();
   };
 
@@ -1781,13 +1798,19 @@ function initTargetCursor() {
       setVisible(true);
     }
 
-    scheduleRender();
-  };
+    const hoveredSource = document.elementFromPoint(mouseX, mouseY);
+    const hoveredTarget =
+      hoveredSource instanceof Element
+        ? hoveredSource.closest(targetCursorSelector)
+        : null;
 
-  const handleMouseOver = (event) => {
-    const target = event.target.closest(targetCursorSelector);
-    if (!target) return;
-    captureTarget(target);
+    if (hoveredTarget) {
+      captureTarget(hoveredTarget, hoveredSource);
+    } else if (activeTarget) {
+      releaseTarget();
+    }
+
+    scheduleRender();
   };
 
   const handleWindowLeave = (event) => {
@@ -1801,16 +1824,19 @@ function initTargetCursor() {
     if (!activeTarget) return;
 
     const hovered = document.elementFromPoint(mouseX, mouseY);
-    if (!hovered || (hovered !== activeTarget && hovered.closest(targetCursorSelector) !== activeTarget)) {
+    const nextTarget =
+      hovered instanceof Element ? hovered.closest(targetCursorSelector) : null;
+
+    if (!nextTarget) {
       releaseTarget();
       return;
     }
 
+    captureTarget(nextTarget, hovered);
     scheduleRender();
   };
 
   window.addEventListener("mousemove", handleMouseMove);
-  window.addEventListener("mouseover", handleMouseOver, { passive: true });
   window.addEventListener("mouseout", handleWindowLeave);
   window.addEventListener("scroll", handleScrollOrResize, { passive: true });
   window.addEventListener("resize", handleScrollOrResize);
