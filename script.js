@@ -290,7 +290,7 @@ const projectGallerySpanPattern = [
   6,
 ];
 
-let activePosterPixelHover = null;
+let activeCardPixelHover = null;
 let posterArchiveGroups = [];
 let posterArchiveFlatList = [];
 let activeProjectCase = null;
@@ -1086,13 +1086,14 @@ function getEffectivePixelSpeed(value) {
   return parsed * throttle;
 }
 
-class PosterPixelHover {
-  constructor(card, config) {
+class CardPixelHover {
+  constructor(card, config, options = {}) {
     this.card = card;
-    this.visual = card.querySelector(".poster-card-visual");
-    this.canvas = card.querySelector(".poster-pixel-canvas");
+    this.visual = card.querySelector(options.visualSelector || ".poster-card-visual");
+    this.canvas = card.querySelector(options.canvasSelector || ".poster-pixel-canvas");
     this.context = this.canvas?.getContext("2d", { alpha: true, desynchronized: true });
     this.config = config;
+    this.activeClass = options.activeClass || "is-pixel-active";
     this.pixels = [];
     this.animationFrame = 0;
     this.animationName = "disappear";
@@ -1172,23 +1173,23 @@ class PosterPixelHover {
     this.animationFrame = 0;
     this.animationName = "disappear";
     this.resetPixels();
-    this.card.classList.remove("is-pixel-active");
+    this.card.classList.remove(this.activeClass);
   }
 
   handlePointerEnter() {
-    if (activePosterPixelHover && activePosterPixelHover !== this) {
-      activePosterPixelHover.deactivateImmediately();
+    if (activeCardPixelHover && activeCardPixelHover !== this) {
+      activeCardPixelHover.deactivateImmediately();
     }
 
-    activePosterPixelHover = this;
+    activeCardPixelHover = this;
     this.resetPixels();
-    this.card.classList.add("is-pixel-active");
+    this.card.classList.add(this.activeClass);
     this.startAnimation("appear");
   }
 
   handlePointerLeave() {
-    if (activePosterPixelHover === this) {
-      activePosterPixelHover = null;
+    if (activeCardPixelHover === this) {
+      activeCardPixelHover = null;
     }
 
     this.deactivateImmediately();
@@ -1231,7 +1232,7 @@ class PosterPixelHover {
     this.animationFrame = 0;
 
     if (this.animationName === "disappear") {
-      this.card.classList.remove("is-pixel-active");
+      this.card.classList.remove(this.activeClass);
       this.resetPixels();
     }
   }
@@ -1246,7 +1247,35 @@ function initPosterPixelHover() {
   if (!cards.length) return;
 
   cards.forEach((card) => {
-    new PosterPixelHover(card, posterPixelHoverConfig);
+    new CardPixelHover(card, posterPixelHoverConfig);
+  });
+}
+
+function initHomeProjectPixelHover() {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (!window.matchMedia("(pointer: fine)").matches) return;
+  if (!window.matchMedia("(min-width: 1024px)").matches) return;
+
+  const cards = document.querySelectorAll(
+    "body[data-page='home'] .editorial-card.is-link:not(.project-feature)",
+  );
+  if (!cards.length) return;
+
+  cards.forEach((card) => {
+    const media = card.querySelector(".card-media");
+    if (!media) return;
+
+    if (!media.querySelector(".project-pixel-canvas")) {
+      const canvas = document.createElement("canvas");
+      canvas.className = "project-pixel-canvas";
+      canvas.setAttribute("aria-hidden", "true");
+      media.append(canvas);
+    }
+
+    new CardPixelHover(card, posterPixelHoverConfig, {
+      visualSelector: ".card-media",
+      canvasSelector: ".project-pixel-canvas",
+    });
   });
 }
 
@@ -2040,6 +2069,7 @@ function initPage() {
   if (page === "home") {
     initHomeProjectMediaRatios();
     scheduleNonCriticalTask(() => {
+      initHomeProjectPixelHover();
       initTargetCursor();
     }, 700);
     return;
