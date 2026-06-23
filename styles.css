@@ -843,7 +843,8 @@ body[data-page="project"] .project-image-trigger:focus-visible .project-gallery-
 }
 
 .target-cursor.is-targeting .target-cursor-visual {
-  animation-play-state: paused;
+  animation: none;
+  transform: none;
 }
 
 .target-cursor-dot {
