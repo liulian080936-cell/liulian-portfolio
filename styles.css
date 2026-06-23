@@ -1454,6 +1454,18 @@ body[data-page="project"] .poster-drawer-backdrop {
   max-height: none;
 }
 
+body[data-page="posters"] .poster-drawer.is-project-drawer .poster-drawer-figure {
+  flex: 0 1 auto;
+  width: min(100%, 920px);
+}
+
+body[data-page="posters"] .poster-drawer.is-project-drawer .poster-drawer-figure > img {
+  width: auto;
+  max-width: 100%;
+  height: min(calc(100dvh - 36px), 1180px);
+  max-height: min(calc(100dvh - 36px), 1180px);
+}
+
 .project-drawer-minimap {
   position: sticky;
   top: 0;
@@ -2153,6 +2165,12 @@ body[data-page="project"] .poster-drawer-backdrop {
     width: 100%;
     height: auto;
     max-height: none;
+  }
+
+  body[data-page="posters"] .poster-drawer.is-project-drawer .poster-drawer-figure > img {
+    width: auto;
+    max-width: 100%;
+    height: auto;
   }
 
   .poster-drawer-meta {
