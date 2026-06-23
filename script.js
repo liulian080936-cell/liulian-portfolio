@@ -134,9 +134,9 @@ const posterPixelHoverConfig = {
   gap: 12,
   speed: 28,
   colors: [
-    "rgba(255, 247, 153, 0.84)",
-    "rgba(240, 224, 63, 0.72)",
-    "rgba(255, 214, 10, 0.52)",
+    "rgba(255, 255, 255, 0.92)",
+    "rgba(255, 255, 255, 0.72)",
+    "rgba(255, 255, 255, 0.52)",
   ],
 };
 const projectCaseSource = [

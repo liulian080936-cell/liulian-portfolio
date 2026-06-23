@@ -212,7 +212,7 @@ body[data-page="home"] .editorial-card:not(.project-feature) .card-media::before
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  background: radial-gradient(circle at center, rgba(255, 226, 59, 0.22), transparent 78%);
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.22), transparent 78%);
   opacity: 0;
   transition: opacity 320ms cubic-bezier(0.5, 1, 0.89, 1);
 }
@@ -1222,7 +1222,7 @@ body[data-page="posters"] .poster-card-visual::after {
   inset: 0;
   z-index: 5;
   pointer-events: none;
-  background: radial-gradient(circle at center, rgba(255, 226, 59, 0.22), transparent 78%);
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.22), transparent 78%);
   opacity: 0;
   transition: opacity 320ms cubic-bezier(0.5, 1, 0.89, 1);
 }
