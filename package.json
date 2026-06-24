@@ -7,5 +7,8 @@
     "optimize:images": "python3 scripts/optimize-images.py",
     "build": "node scripts/build.mjs",
     "preview": "node scripts/dev-server.mjs --root dist"
+  },
+  "dependencies": {
+    "gsap": "^3.15.0"
   }
 }

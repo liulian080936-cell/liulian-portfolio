@@ -334,6 +334,11 @@ let posterArchiveGroups = [];
 let posterArchiveFlatList = [];
 let activeProjectCase = null;
 let deferredImageObserver = null;
+let scrambledTextObserver = null;
+let scrambledTextRefreshHandle = 0;
+let scrambledTextInitialized = false;
+const scrambledTextRoots = new Map();
+const pendingScrambledScopes = new Set();
 const targetCursorSelector = "a, button, [role='button'], .cursor-target";
 const targetCursorFrameSelector = [
   ".poster-card-visual",
@@ -342,6 +347,27 @@ const targetCursorFrameSelector = [
   ".posters-band-strip",
   ".card-media",
 ].join(", ");
+const scrambledTextConfig = Object.freeze({
+  radius: 110,
+  duration: 0.95,
+  speed: 0.6,
+  scrambleChars: ".:",
+  selector: "a, p, h1, h2, h3, h4, h5, h6, strong, small, button, label, li, blockquote, figcaption, dt, dd, span",
+});
+const scrambledTextIgnoredTags = new Set([
+  "SCRIPT",
+  "STYLE",
+  "NOSCRIPT",
+  "SVG",
+  "PATH",
+  "IMG",
+  "VIDEO",
+  "CANVAS",
+  "INPUT",
+  "TEXTAREA",
+  "SELECT",
+  "OPTION",
+]);
 
 const lerp = (a, b, n) => (1 - n) * a + n * b;
 const encodeImagePath = (folder, file) => encodeURI(`${folder}/${file}`);
@@ -352,6 +378,305 @@ function scheduleNonCriticalTask(task, timeout = 600) {
   }
 
   return window.setTimeout(task, Math.min(timeout, 180));
+}
+
+function canUseScrambledText() {
+  return Boolean(window.gsap)
+    && !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    && window.matchMedia("(pointer: fine)").matches;
+}
+
+function getScrambledScopeDepth(scope) {
+  let depth = 0;
+  let current = scope;
+
+  while (current?.parentElement) {
+    depth += 1;
+    current = current.parentElement;
+  }
+
+  return depth;
+}
+
+function trackScrambledScope(scope) {
+  if (!(scope instanceof Element) && scope !== document.body) return;
+
+  if (scope === document.body) {
+    pendingScrambledScopes.clear();
+    pendingScrambledScopes.add(scope);
+    return;
+  }
+
+  if (pendingScrambledScopes.has(document.body)) return;
+
+  for (const pendingScope of [...pendingScrambledScopes]) {
+    if (pendingScope.contains(scope)) return;
+    if (scope.contains(pendingScope)) pendingScrambledScopes.delete(pendingScope);
+  }
+
+  pendingScrambledScopes.add(scope);
+}
+
+function scheduleScrambledTextRefresh(scope = document.body) {
+  if (!canUseScrambledText()) return;
+
+  trackScrambledScope(scope);
+  if (scrambledTextRefreshHandle) return;
+
+  scrambledTextRefreshHandle = window.requestAnimationFrame(() => {
+    scrambledTextRefreshHandle = 0;
+
+    const scopes = [...pendingScrambledScopes].sort(
+      (left, right) => getScrambledScopeDepth(left) - getScrambledScopeDepth(right),
+    );
+
+    pendingScrambledScopes.clear();
+
+    if (scrambledTextObserver) {
+      scrambledTextObserver.disconnect();
+    }
+
+    scopes.forEach((currentScope) => applyScrambledText(currentScope));
+
+    if (scrambledTextObserver && document.body) {
+      scrambledTextObserver.observe(document.body, {
+        childList: true,
+        characterData: true,
+        subtree: true,
+      });
+    }
+  });
+}
+
+function hasDirectScrambleText(element) {
+  return [...element.childNodes].some(
+    (node) => node.nodeType === Node.TEXT_NODE && node.nodeValue?.trim(),
+  );
+}
+
+function shouldIgnoreScrambledSubtree(element) {
+  if (!(element instanceof Element)) return true;
+  if (scrambledTextIgnoredTags.has(element.tagName)) return true;
+  if (element.closest("[data-scramble-skip='true']")) return true;
+  if (element.closest("[aria-hidden='true']")) return true;
+  if (element.isContentEditable) return true;
+  return false;
+}
+
+function splitScrambledTextNode(node, chars) {
+  if (node.nodeType !== Node.TEXT_NODE || !node.parentElement) return;
+
+  const value = node.nodeValue || "";
+  if (!value.trim()) return;
+
+  const fragment = document.createDocumentFragment();
+
+  [...value].forEach((character) => {
+    if (/\s/.test(character)) {
+      fragment.append(document.createTextNode(character));
+      return;
+    }
+
+    const span = document.createElement("span");
+    span.className = "scramble-char";
+    span.textContent = character;
+    chars.push({
+      span,
+      original: character,
+      state: { progress: 1 },
+      lastFrame: -1,
+      nextTriggerAt: 0,
+      stepCount: 0,
+      tween: null,
+    });
+    fragment.append(span);
+  });
+
+  node.replaceWith(fragment);
+}
+
+function prepareScrambledRoot(root) {
+  if (!(root instanceof Element)) return;
+  if (shouldIgnoreScrambledSubtree(root)) return;
+
+  const existingEntry = scrambledTextRoots.get(root);
+  if (existingEntry) {
+    if (root.querySelector(".scramble-char")) return;
+
+    existingEntry.chars.forEach((entry) => entry.tween?.kill());
+    scrambledTextRoots.delete(root);
+  }
+
+  const chars = [];
+  const textWalker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      if (!(node.parentElement instanceof Element)) return NodeFilter.FILTER_REJECT;
+      if (shouldIgnoreScrambledSubtree(node.parentElement)) return NodeFilter.FILTER_REJECT;
+      if (!node.nodeValue?.trim()) return NodeFilter.FILTER_SKIP;
+      return NodeFilter.FILTER_ACCEPT;
+    },
+  });
+
+  const textNodes = [];
+
+  while (textWalker.nextNode()) {
+    textNodes.push(textWalker.currentNode);
+  }
+
+  textNodes.forEach((textNode) => splitScrambledTextNode(textNode, chars));
+
+  if (!chars.length) return;
+
+  root.dataset.scrambleRoot = "true";
+  scrambledTextRoots.set(root, { root, chars });
+}
+
+function applyScrambledText(scope) {
+  const baseScope = scope instanceof Element ? scope : document.body;
+  if (!(baseScope instanceof Element) && baseScope !== document.body) return;
+
+  if (baseScope instanceof Element && baseScope.matches(scrambledTextConfig.selector) && hasDirectScrambleText(baseScope)) {
+    prepareScrambledRoot(baseScope);
+    return;
+  }
+
+  const candidates = [
+    ...(baseScope instanceof Element && baseScope.matches(scrambledTextConfig.selector) ? [baseScope] : []),
+    ...baseScope.querySelectorAll(scrambledTextConfig.selector),
+  ];
+  const selectedRoots = [];
+
+  candidates.forEach((candidate) => {
+    if (!(candidate instanceof Element)) return;
+    if (!hasDirectScrambleText(candidate)) return;
+    if (selectedRoots.some((root) => root.contains(candidate))) return;
+    if (candidate.closest("[data-scramble-root='true']") && !candidate.matches("[data-scramble-root='true']")) return;
+    selectedRoots.push(candidate);
+  });
+
+  selectedRoots.forEach((root) => prepareScrambledRoot(root));
+}
+
+function resolveScrambledRefreshScope(node) {
+  const element = node instanceof Element ? node : node.parentElement;
+  if (!element || !document.body?.contains(element)) return null;
+  return element.closest("[data-scramble-root='true']") || element;
+}
+
+function handleScrambledMutationBatch(mutations) {
+  mutations.forEach((mutation) => {
+    if (mutation.type === "characterData") {
+      const parent = mutation.target.parentElement;
+      if (parent?.classList.contains("scramble-char")) return;
+      scheduleScrambledTextRefresh(resolveScrambledRefreshScope(mutation.target));
+      return;
+    }
+
+    if (mutation.target instanceof Element && mutation.target.classList.contains("scramble-char")) {
+      return;
+    }
+
+    scheduleScrambledTextRefresh(resolveScrambledRefreshScope(mutation.target));
+
+    mutation.addedNodes.forEach((node) => {
+      if (node instanceof Element && node.classList.contains("scramble-char")) return;
+      scheduleScrambledTextRefresh(resolveScrambledRefreshScope(node));
+    });
+  });
+}
+
+function renderScrambledChar(entry) {
+  const progress = entry.state.progress;
+
+  if (progress >= 0.82) {
+    if (entry.span.textContent !== entry.original) {
+      entry.span.textContent = entry.original;
+    }
+    return;
+  }
+
+  const nextFrame = Math.floor(progress * entry.stepCount);
+  if (nextFrame === entry.lastFrame) return;
+
+  entry.lastFrame = nextFrame;
+  const { scrambleChars } = scrambledTextConfig;
+  const randomIndex = Math.floor(Math.random() * scrambleChars.length);
+  entry.span.textContent = scrambleChars.charAt((nextFrame + randomIndex) % scrambleChars.length);
+}
+
+function triggerScrambledChar(entry, durationSeconds, currentTime) {
+  entry.lastFrame = -1;
+  entry.stepCount = Math.max(
+    6,
+    Math.round(durationSeconds * (12 + scrambledTextConfig.speed * 18)),
+  );
+  entry.nextTriggerAt = currentTime + Math.max(72, durationSeconds * 220);
+  entry.tween?.kill();
+  entry.state.progress = 0;
+  entry.tween = window.gsap.to(entry.state, {
+    progress: 1,
+    duration: durationSeconds,
+    ease: "none",
+    overwrite: true,
+    onUpdate: () => renderScrambledChar(entry),
+    onComplete: () => {
+      entry.span.textContent = entry.original;
+      entry.state.progress = 1;
+      entry.lastFrame = -1;
+    },
+  });
+}
+
+function handleScrambledPointerMove(event) {
+  if (!(event.target instanceof Element)) return;
+
+  const root = event.target.closest("[data-scramble-root='true']");
+  if (!root) return;
+
+  const entry = scrambledTextRoots.get(root);
+  if (!entry?.chars.length) return;
+
+  const currentTime = performance.now();
+  const { clientX, clientY } = event;
+
+  entry.chars.forEach((charEntry) => {
+    if (currentTime < charEntry.nextTriggerAt) return;
+
+    const { left, top, width, height } = charEntry.span.getBoundingClientRect();
+    const dx = clientX - (left + width / 2);
+    const dy = clientY - (top + height / 2);
+    const distance = Math.hypot(dx, dy);
+
+    if (distance >= scrambledTextConfig.radius) return;
+
+    const distanceFactor = 1 - distance / scrambledTextConfig.radius;
+    const durationSeconds = Math.max(
+      0.18,
+      scrambledTextConfig.duration * distanceFactor,
+    );
+
+    triggerScrambledChar(charEntry, durationSeconds, currentTime);
+  });
+}
+
+function initGlobalScrambledText() {
+  if (!canUseScrambledText()) return;
+
+  if (!scrambledTextInitialized) {
+    scrambledTextInitialized = true;
+    document.body.addEventListener("pointermove", handleScrambledPointerMove, {
+      passive: true,
+    });
+
+    scrambledTextObserver = new MutationObserver(handleScrambledMutationBatch);
+    scrambledTextObserver.observe(document.body, {
+      childList: true,
+      characterData: true,
+      subtree: true,
+    });
+  }
+
+  scheduleScrambledTextRefresh(document.body);
 }
 
 function revealDeferredImage(image) {
@@ -2296,6 +2621,9 @@ function initPage() {
   if (page === "posters") {
     renderPosterPage();
     scheduleNonCriticalTask(() => {
+      initGlobalScrambledText();
+    }, 180);
+    scheduleNonCriticalTask(() => {
       initPosterDrawer();
       initPosterPixelHover();
       initTargetCursor();
@@ -2305,6 +2633,9 @@ function initPage() {
 
   if (page === "project") {
     renderProjectPage();
+    scheduleNonCriticalTask(() => {
+      initGlobalScrambledText();
+    }, 180);
     scheduleNonCriticalTask(() => {
       initProjectDrawer();
       initTargetCursor();
@@ -2316,6 +2647,9 @@ function initPage() {
     initHomeProjectMediaRatios();
     initFooterLinkPreviews();
     scheduleNonCriticalTask(() => {
+      initGlobalScrambledText();
+    }, 240);
+    scheduleNonCriticalTask(() => {
       initHomeProjectPixelHover();
       initTargetCursor();
     }, 700);
@@ -2323,6 +2657,7 @@ function initPage() {
   }
 
   scheduleNonCriticalTask(() => {
+    initGlobalScrambledText();
     initTargetCursor();
   }, 400);
 }

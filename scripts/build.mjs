@@ -9,6 +9,7 @@ const entries = [
   "project.html",
   "script.js",
   "styles.css",
+  "node_modules/gsap/dist/gsap.min.js",
 ];
 const assetSourceFiles = [
   "index.html",
@@ -81,7 +82,11 @@ await rm(distDir, { recursive: true, force: true });
 await mkdir(distDir, { recursive: true });
 
 for (const entry of entries) {
-  await cp(path.join(rootDir, entry), path.join(distDir, entry), {
+  const sourcePath = path.join(rootDir, entry);
+  const destinationPath = path.join(distDir, entry);
+
+  await mkdir(path.dirname(destinationPath), { recursive: true });
+  await cp(sourcePath, destinationPath, {
     recursive: true,
     force: true,
   });
