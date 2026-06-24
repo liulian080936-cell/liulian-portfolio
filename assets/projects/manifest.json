@@ -57,6 +57,24 @@
     ]
   },
   {
+    "slug": "zero-m1",
+    "imageCount": 12,
+    "images": [
+      "./assets/projects/zero-m1/1.webp",
+      "./assets/projects/zero-m1/2.webp",
+      "./assets/projects/zero-m1/3.webp",
+      "./assets/projects/zero-m1/4.webp",
+      "./assets/projects/zero-m1/5.webp",
+      "./assets/projects/zero-m1/6.webp",
+      "./assets/projects/zero-m1/7.webp",
+      "./assets/projects/zero-m1/8.webp",
+      "./assets/projects/zero-m1/9.webp",
+      "./assets/projects/zero-m1/10.webp",
+      "./assets/projects/zero-m1/11.webp",
+      "./assets/projects/zero-m1/12.webp"
+    ]
+  },
+  {
     "slug": "ecoflow",
     "imageCount": 9,
     "images": [

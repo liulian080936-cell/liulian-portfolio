@@ -211,8 +211,18 @@ const projectCaseSource = [
       "A compact but high-contrast identity presentation built from logo studies, applications, and final brand moments.",
   },
   {
-    slug: "ecoflow",
+    slug: "zero-m1",
     number: "09",
+    title: "ZERO M1",
+    subtitle: "",
+    discipline: "Brand Identity / Campaign Visuals",
+    accent: "#5a6f86",
+    summary:
+      "A future-facing visual identity built through robotic product imagery, interface-led graphics, and stark campaign compositions.",
+  },
+  {
+    slug: "ecoflow",
+    number: "10",
     title: "ECOFLOW",
     subtitle: "项目",
     discipline: "Campaign Visual / Launch Material",
@@ -222,7 +232,7 @@ const projectCaseSource = [
   },
   {
     slug: "double8-coffee",
-    number: "10",
+    number: "11",
     title: "DOUBLE 8 COFFEE",
     subtitle: "",
     discipline: "Coffee Branding / Visual Identity",
@@ -232,7 +242,7 @@ const projectCaseSource = [
   },
   {
     slug: "fivebook",
-    number: "11",
+    number: "12",
     title: "FIVEBOOK",
     subtitle: "五本书屋",
     discipline: "Bookstore Brand / Space Graphics",
@@ -242,7 +252,7 @@ const projectCaseSource = [
   },
   {
     slug: "flow-in",
-    number: "12",
+    number: "13",
     title: "FLOW IN",
     subtitle: "",
     discipline: "Lifestyle Space / Visual Identity",
@@ -252,7 +262,7 @@ const projectCaseSource = [
   },
   {
     slug: "shake-coffee",
-    number: "13",
+    number: "14",
     title: "SHAKE COFFEE",
     subtitle: "摇coffee",
     discipline: "Illustration Brand / Coffee System",
@@ -289,6 +299,35 @@ const projectGallerySpanPattern = [
   6,
   6,
 ];
+const footerPreviewSource = {
+  "selected-works": {
+    title: "SELECTED WORKS",
+    note: "Project lead images cycling every second.",
+    images: [
+      "./assets/projects/youth-tour/1.webp",
+      "./assets/projects/newlife/1.webp",
+      "./assets/projects/fivebook/1.webp",
+      "./assets/projects/double8-coffee/1.webp",
+      "./assets/projects/zero-m1/1.webp",
+      "./assets/projects/ecoflow/12.webp",
+      "./assets/projects/nomokids/0.webp",
+    ],
+  },
+  posters: {
+    title: "POSTERS",
+    note: "Poster covers cycling every second.",
+    images: [
+      "./assets/posters/home-band/band-01.webp",
+      "./assets/posters/home-band/band-02.webp",
+      "./assets/posters/home-band/band-03.webp",
+      "./assets/posters/home-band/band-04.webp",
+      "./assets/posters/home-band/band-05.webp",
+      "./assets/posters/home-band/band-06.webp",
+      "./assets/posters/home-band/band-07.webp",
+      "./assets/posters/home-band/band-08.webp",
+    ],
+  },
+};
 
 let activeCardPixelHover = null;
 let posterArchiveGroups = [];
@@ -1322,12 +1361,217 @@ function applyIntrinsicAspectRatio(image, host = image?.parentElement) {
 
 function initHomeProjectMediaRatios() {
   const projectImages = document.querySelectorAll(
-    "body[data-page='home'] .editorial-card:not(.project-feature) .card-media img",
+    [
+      "body[data-page='home'] .editorial-card:not(.project-feature):not(.home-project-card):not(.home-project-list-item) .card-media img",
+      "body[data-page='home'] .home-project-list-media img",
+    ].join(", "),
   );
 
   projectImages.forEach((image) => {
     applyIntrinsicAspectRatio(image);
   });
+}
+
+function syncSiteHeaderHeight() {
+  const header = document.querySelector(".site-header");
+  if (!header) return;
+
+  const updateHeaderHeight = () => {
+    const { height } = header.getBoundingClientRect();
+    if (!height) return;
+    document.documentElement.style.setProperty("--site-header-height", `${Math.round(height)}px`);
+  };
+
+  updateHeaderHeight();
+  window.addEventListener("resize", updateHeaderHeight, { passive: true });
+
+  if ("ResizeObserver" in window) {
+    const observer = new ResizeObserver(updateHeaderHeight);
+    observer.observe(header);
+  }
+}
+
+function initFooterLinkPreviews() {
+  const preview = document.querySelector(".portfolio-footer-preview");
+  const copy = document.querySelector(".portfolio-footer-preview-copy");
+  const title = document.querySelector("#footerPreviewTitle");
+  const note = document.querySelector("#footerPreviewNote");
+  const stage = document.querySelector(".portfolio-footer-preview-stage");
+  const primaryImage = document.querySelector("#footerPreviewImagePrimary");
+  const secondaryImage = document.querySelector("#footerPreviewImageSecondary");
+  const footerLinks = document.querySelector(".portfolio-footer-links");
+  const triggers = Array.from(document.querySelectorAll(".portfolio-footer-preview-trigger[data-footer-preview]"));
+
+  if (!preview || !copy || !title || !note || !stage || !primaryImage || !secondaryImage || !footerLinks || !triggers.length) {
+    return;
+  }
+
+  const metricsBySource = new Map();
+
+  const saveImageMetrics = (src, image) => {
+    if (!image.naturalWidth || !image.naturalHeight) return;
+
+    metricsBySource.set(src, {
+      aspect: image.naturalWidth / image.naturalHeight,
+    });
+  };
+
+  Object.values(footerPreviewSource).forEach((entry) => {
+    entry.images.forEach((src) => {
+      const image = new Image();
+      image.addEventListener(
+        "load",
+        () => {
+          saveImageMetrics(src, image);
+          if (activeKey && slots.some((slot) => slot.getAttribute("src")?.endsWith(src.replace("./", "")))) {
+            syncPreviewStage(src);
+          }
+        },
+        { once: true },
+      );
+      image.src = src;
+      if (image.complete) {
+        saveImageMetrics(src, image);
+      }
+    });
+  });
+
+  const slots = [primaryImage, secondaryImage];
+  let activeKey = null;
+  let activeIndex = 0;
+  let visibleSlotIndex = 0;
+  let cycleTimer = 0;
+  let stopTimer = 0;
+
+  const getStageChrome = () => {
+    const stageStyles = window.getComputedStyle(stage);
+    const paddingX =
+      (Number.parseFloat(stageStyles.paddingLeft) || 0) +
+      (Number.parseFloat(stageStyles.paddingRight) || 0) +
+      (Number.parseFloat(stageStyles.borderLeftWidth) || 0) +
+      (Number.parseFloat(stageStyles.borderRightWidth) || 0);
+    const paddingY =
+      (Number.parseFloat(stageStyles.paddingTop) || 0) +
+      (Number.parseFloat(stageStyles.paddingBottom) || 0) +
+      (Number.parseFloat(stageStyles.borderTopWidth) || 0) +
+      (Number.parseFloat(stageStyles.borderBottomWidth) || 0);
+
+    return { paddingX, paddingY };
+  };
+
+  const syncPreviewStage = (src) => {
+    if (!src) return;
+
+    const metrics = metricsBySource.get(src);
+    if (!metrics?.aspect) {
+      stage.style.width = "";
+      stage.style.height = "";
+      return;
+    }
+
+    const previewStyles = window.getComputedStyle(preview);
+    const gap = Number.parseFloat(previewStyles.rowGap || previewStyles.gap) || 0;
+    const availableWidth = preview.clientWidth;
+    const availableHeight = Math.max(160, footerLinks.offsetTop - preview.offsetTop - copy.offsetHeight - gap - 18);
+    const { paddingX, paddingY } = getStageChrome();
+    const contentWidth = Math.max(0, availableWidth - paddingX);
+    const contentHeight = Math.max(0, availableHeight - paddingY);
+    const frameContentWidth = Math.min(contentWidth, contentHeight * metrics.aspect);
+    const frameContentHeight = frameContentWidth / metrics.aspect;
+
+    stage.style.width = `${Math.round(frameContentWidth + paddingX)}px`;
+    stage.style.height = `${Math.round(frameContentHeight + paddingY)}px`;
+  };
+
+  const setTriggerState = (nextKey) => {
+    triggers.forEach((trigger) => {
+      trigger.classList.toggle("is-preview-active", trigger.dataset.footerPreview === nextKey);
+    });
+  };
+
+  const renderFrame = (entry, index) => {
+    const nextSlotIndex = visibleSlotIndex === 0 ? 1 : 0;
+    const nextSlot = slots[nextSlotIndex];
+    const previousSlot = slots[visibleSlotIndex];
+    nextSlot.src = entry.images[index];
+    nextSlot.alt = `${entry.title} preview ${index + 1}`;
+    nextSlot.classList.add("is-visible");
+    previousSlot.classList.remove("is-visible");
+    visibleSlotIndex = nextSlotIndex;
+
+    window.requestAnimationFrame(() => syncPreviewStage(entry.images[index]));
+  };
+
+  const startPreview = (key) => {
+    const entry = footerPreviewSource[key];
+    if (!entry) return;
+
+    window.clearTimeout(stopTimer);
+    stopTimer = 0;
+
+    if (activeKey !== key) {
+      activeKey = key;
+      activeIndex = 0;
+    }
+
+    title.textContent = entry.title;
+    note.textContent = entry.note;
+    preview.classList.add("is-active");
+    setTriggerState(key);
+    renderFrame(entry, activeIndex);
+
+    window.clearInterval(cycleTimer);
+    cycleTimer = 0;
+
+    if (entry.images.length > 1) {
+      cycleTimer = window.setInterval(() => {
+        activeIndex = (activeIndex + 1) % entry.images.length;
+        renderFrame(entry, activeIndex);
+      }, 1000);
+    }
+  };
+
+  const stopPreview = () => {
+    window.clearInterval(cycleTimer);
+    cycleTimer = 0;
+    activeKey = null;
+    activeIndex = 0;
+    preview.classList.remove("is-active");
+    setTriggerState(null);
+  };
+
+  const scheduleStop = () => {
+    window.clearTimeout(stopTimer);
+    stopTimer = window.setTimeout(() => {
+      const hoveredTrigger = triggers.some((trigger) => trigger.matches(":hover"));
+      const focusedTrigger = triggers.some((trigger) => trigger === document.activeElement);
+      if (!hoveredTrigger && !focusedTrigger) {
+        stopPreview();
+      }
+    }, 80);
+  };
+
+  triggers.forEach((trigger) => {
+    const { footerPreview: key } = trigger.dataset;
+    if (!key) return;
+
+    trigger.addEventListener("mouseenter", () => startPreview(key));
+    trigger.addEventListener("focus", () => startPreview(key));
+    trigger.addEventListener("mouseleave", scheduleStop);
+    trigger.addEventListener("blur", scheduleStop);
+  });
+
+  window.addEventListener(
+    "resize",
+    () => {
+      if (!activeKey) return;
+
+      const entry = footerPreviewSource[activeKey];
+      if (!entry) return;
+      syncPreviewStage(entry.images[activeIndex]);
+    },
+    { passive: true },
+  );
 }
 
 function buildProjectFrameLabel(index) {
@@ -2047,6 +2291,8 @@ function initTargetCursor() {
 function initPage() {
   const page = document.body?.dataset.page;
 
+  syncSiteHeaderHeight();
+
   if (page === "posters") {
     renderPosterPage();
     scheduleNonCriticalTask(() => {
@@ -2068,6 +2314,7 @@ function initPage() {
 
   if (page === "home") {
     initHomeProjectMediaRatios();
+    initFooterLinkPreviews();
     scheduleNonCriticalTask(() => {
       initHomeProjectPixelHover();
       initTargetCursor();
