@@ -15,6 +15,23 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
+    <script>
+      (() => {
+        try {
+          const navigationEntry = performance.getEntriesByType("navigation")[0];
+          const navigationType = navigationEntry?.type || "navigate";
+          const referrerUrl = document.referrer ? new URL(document.referrer) : null;
+          const sameOriginReferrer = referrerUrl?.origin === window.location.origin;
+          const shouldSkipHomeLoader = navigationType === "reload"
+            || navigationType === "back_forward"
+            || sameOriginReferrer;
+
+          document.documentElement.dataset.homeLoader = shouldSkipHomeLoader ? "skip" : "show";
+        } catch {
+          document.documentElement.dataset.homeLoader = "show";
+        }
+      })();
+    </script>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body data-page="home">

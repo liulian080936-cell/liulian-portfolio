@@ -455,6 +455,12 @@ function initHomeLoadingScreen() {
 
   if (!loader || !value || !label) return;
 
+  if (document.documentElement.dataset.homeLoader === "skip") {
+    loader.hidden = true;
+    loader.remove();
+    return;
+  }
+
   const body = document.body;
   const startTime = performance.now();
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;

@@ -74,6 +74,10 @@ body[data-page="home"].is-home-loading .page-shell {
   will-change: transform, opacity;
 }
 
+html[data-home-loader="skip"] .home-loader {
+  display: none;
+}
+
 .home-loader::before,
 .home-loader::after {
   display: none;
