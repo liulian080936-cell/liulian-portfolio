@@ -451,7 +451,6 @@ function initHomeLoadingScreen() {
   const loader = document.getElementById("homeLoadingScreen");
   const value = document.getElementById("homeLoadingValue");
   const label = document.getElementById("homeLoadingLabel");
-  const video = document.getElementById("homeLoadingVideo");
 
   if (!loader || !value || !label) return;
 
@@ -538,45 +537,6 @@ function initHomeLoadingScreen() {
     image.addEventListener("load", markAssetLoaded, { once: true });
     image.addEventListener("error", markAssetLoaded, { once: true });
   });
-
-  if (video instanceof HTMLVideoElement) {
-    trackedAssetCount += 1;
-
-    let videoHandled = false;
-    const handleVideoProgress = (hasVideo) => {
-      if (videoHandled) return;
-      videoHandled = true;
-
-      if (hasVideo) {
-        loader.classList.add("has-video");
-      }
-
-      markAssetLoaded();
-    };
-
-    if (video.readyState >= 2) {
-      handleVideoProgress(true);
-    } else {
-      const videoFallbackTimer = window.setTimeout(() => {
-        handleVideoProgress(false);
-      }, 1600);
-      const resolveVideoProgress = (hasVideo) => {
-        window.clearTimeout(videoFallbackTimer);
-        handleVideoProgress(hasVideo);
-      };
-
-      video.addEventListener("loadeddata", () => resolveVideoProgress(true), { once: true });
-      video.addEventListener("canplay", () => resolveVideoProgress(true), { once: true });
-      video.addEventListener("error", () => resolveVideoProgress(false), { once: true });
-
-      const playPromise = video.play();
-      if (playPromise?.catch) {
-        playPromise.catch(() => {
-          resolveVideoProgress(false);
-        });
-      }
-    }
-  }
 
   const maybeFinish = (now) => {
     const elapsed = now - startTime;

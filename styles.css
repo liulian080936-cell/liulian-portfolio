@@ -114,31 +114,13 @@ body[data-page="home"].is-home-loading .page-shell {
   aspect-ratio: 1 / 1;
 }
 
-.home-loader-fallback,
-.home-loader-video {
+.home-loader-fallback {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
-}
-
-.home-loader-fallback {
   transition: opacity 0.42s ease;
-}
-
-.home-loader-video {
-  z-index: 1;
-  opacity: 0;
-  transition: opacity 0.42s ease;
-}
-
-.home-loader.has-video .home-loader-video {
-  opacity: 1;
-}
-
-.home-loader.has-video .home-loader-fallback {
-  opacity: 0;
 }
 
 .home-loader-progress {
