@@ -451,34 +451,34 @@ function initHomeLoadingScreen() {
   const loader = document.getElementById("homeLoadingScreen");
   const value = document.getElementById("homeLoadingValue");
   const label = document.getElementById("homeLoadingLabel");
+  const video = document.getElementById("homeLoadingVideo");
 
   if (!loader || !value || !label) return;
 
   const body = document.body;
   const startTime = performance.now();
-  const minDuration = 1800;
-  const maxDuration = 12000;
-  const preCompleteCap = 96;
-  const completionHoldDuration = 320;
-  const exitDuration = 760;
-  const completionSnapThreshold = 99.4;
-  const countUpDuration = 1;
-  const countUpDamping = 20 + 40 * (1 / countUpDuration);
-  const countUpStiffness = 100 * (1 / countUpDuration);
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const minDuration = prefersReducedMotion ? 1800 : 3200;
+  const maxDuration = 12000;
+  const preCompleteCap = prefersReducedMotion ? 96 : 98;
+  const completionHoldDuration = prefersReducedMotion ? 180 : 260;
+  const exitDuration = 560;
+  const completionSnapThreshold = 99.4;
   const formatCountUpValue = createCountUpFormatter(0, 100);
   const trackedImages = Array.from(document.querySelectorAll("main img"));
+  const videoStartTime = 0.72;
+  const videoCompletionThreshold = 0.985;
+  const videoPlaybackRate = prefersReducedMotion ? 1 : 2;
 
   let trackedAssetCount = trackedImages.length;
   let loadedAssetCount = 0;
-  let actualProgress = trackedAssetCount ? 6 : 22;
+  let actualProgress = video instanceof HTMLVideoElement ? 1 : trackedAssetCount ? 6 : 22;
   let displayedProgress = 1;
-  let progressVelocity = 0;
   let pageLoaded = document.readyState === "complete";
   let finishRequested = false;
   let exitTriggered = false;
   let completionHoldStart = null;
-  let lastFrameTime = startTime;
+  let videoSequenceComplete = !(video instanceof HTMLVideoElement);
 
   body.classList.add("is-home-loading");
   body.setAttribute("aria-busy", "true");
@@ -504,11 +504,50 @@ function initHomeLoadingScreen() {
     label.textContent = "Entering selected works";
   };
 
-  const refreshActualProgress = () => {
+  const areAssetsReady = () => loadedAssetCount >= trackedAssetCount;
+
+  const getAssetDrivenProgress = () => {
     const assetProgress = trackedAssetCount
       ? Math.min(1, loadedAssetCount / trackedAssetCount)
       : 1;
-    const nextProgress = pageLoaded ? 100 : 10 + assetProgress * (preCompleteCap - 10);
+
+    return pageLoaded ? 100 : 10 + assetProgress * (preCompleteCap - 10);
+  };
+
+  const getVideoTimelineProgress = () => {
+    if (!(video instanceof HTMLVideoElement)) return null;
+
+    const duration = Number.isFinite(video.duration) ? video.duration : 0;
+    if (duration <= videoStartTime + 0.08) return null;
+
+    const endTime = Math.max(videoStartTime + 0.24, duration - 0.08);
+    const clampedTime = Math.min(endTime, Math.max(videoStartTime, video.currentTime || 0));
+
+    return (clampedTime - videoStartTime) / (endTime - videoStartTime);
+  };
+
+  const refreshActualProgress = () => {
+    if (video instanceof HTMLVideoElement) {
+      const videoTimelineProgress = getVideoTimelineProgress();
+
+      if (videoTimelineProgress !== null) {
+        if (videoTimelineProgress >= videoCompletionThreshold) {
+          videoSequenceComplete = true;
+        }
+
+        const timelineProgress = 1 + videoTimelineProgress * 99;
+        actualProgress = Math.min(
+          timelineProgress,
+          pageLoaded && areAssetsReady() ? 100 : preCompleteCap,
+        );
+        return;
+      }
+
+      actualProgress = Math.max(1, Math.min(getAssetDrivenProgress(), 8));
+      return;
+    }
+
+    const nextProgress = getAssetDrivenProgress();
     actualProgress = Math.max(
       actualProgress,
       Math.min(nextProgress, finishRequested ? 100 : preCompleteCap),
@@ -538,16 +577,103 @@ function initHomeLoadingScreen() {
     image.addEventListener("error", markAssetLoaded, { once: true });
   });
 
+  if (video instanceof HTMLVideoElement) {
+    trackedAssetCount += 1;
+    video.loop = false;
+    video.defaultPlaybackRate = videoPlaybackRate;
+    video.playbackRate = videoPlaybackRate;
+
+    const syncVideoTiming = () => {
+      const duration = Number.isFinite(video.duration) ? video.duration : 0;
+      const maxSeek = duration > 0 ? Math.max(0, duration - 0.25) : 0;
+      const seekTime = Math.min(videoStartTime, maxSeek);
+
+      if (seekTime > 0 && Math.abs(video.currentTime - seekTime) > 0.08) {
+        try {
+          video.currentTime = seekTime;
+        } catch {
+          // Ignore browsers that reject early seeks while still buffering.
+        }
+      }
+
+      video.playbackRate = videoPlaybackRate;
+    };
+
+    const markVideoSequenceComplete = () => {
+      if (videoSequenceComplete) return;
+
+      const videoTimelineProgress = getVideoTimelineProgress();
+      if (videoTimelineProgress !== null && videoTimelineProgress >= videoCompletionThreshold) {
+        videoSequenceComplete = true;
+      }
+
+      if (video.ended) {
+        videoSequenceComplete = true;
+      }
+    };
+
+    let videoHandled = false;
+    const handleVideoProgress = (hasVideo) => {
+      if (videoHandled) return;
+      videoHandled = true;
+
+      if (!hasVideo) {
+        videoSequenceComplete = true;
+      }
+
+      markAssetLoaded();
+    };
+
+    if (video.readyState >= 2) {
+      syncVideoTiming();
+      handleVideoProgress(true);
+    } else {
+      const videoFallbackTimer = window.setTimeout(() => {
+        handleVideoProgress(false);
+      }, 1600);
+      const resolveVideoProgress = (hasVideo) => {
+        window.clearTimeout(videoFallbackTimer);
+        handleVideoProgress(hasVideo);
+      };
+
+      video.addEventListener("loadeddata", () => resolveVideoProgress(true), { once: true });
+      video.addEventListener("canplay", () => resolveVideoProgress(true), { once: true });
+      video.addEventListener("error", () => resolveVideoProgress(false), { once: true });
+
+      const playPromise = video.play();
+      if (playPromise?.catch) {
+        playPromise.catch(() => {
+          resolveVideoProgress(false);
+        });
+      }
+    }
+
+    if (video.readyState >= 1) {
+      syncVideoTiming();
+    } else {
+      video.addEventListener("loadedmetadata", syncVideoTiming, { once: true });
+    }
+
+    video.addEventListener("timeupdate", markVideoSequenceComplete);
+    video.addEventListener(
+      "ended",
+      () => {
+        videoSequenceComplete = true;
+      },
+      { once: true },
+    );
+  }
+
   const maybeFinish = (now) => {
     const elapsed = now - startTime;
-    const assetsReady = loadedAssetCount >= trackedAssetCount;
+    const assetsReady = areAssetsReady();
 
     if (finishRequested) {
       actualProgress = 100;
       return;
     }
 
-    if (pageLoaded && assetsReady && elapsed >= minDuration) {
+    if (pageLoaded && assetsReady && elapsed >= minDuration && videoSequenceComplete) {
       finishRequested = true;
       actualProgress = 100;
       return;
@@ -577,36 +703,9 @@ function initHomeLoadingScreen() {
   };
 
   const animateProgress = (now) => {
+    refreshActualProgress();
     maybeFinish(now);
-
-    const elapsed = now - startTime;
-    const deltaSeconds = Math.min(0.05, Math.max(1 / 120, (now - lastFrameTime) / 1000));
-    lastFrameTime = now;
-    const timeBoundProgress = finishRequested
-      ? 100
-      : elapsed <= minDuration
-        ? 4 + (elapsed / minDuration) * 82
-        : 86 + Math.min(1, (elapsed - minDuration) / (maxDuration - minDuration)) * 10;
-    const visualTarget = Math.min(actualProgress, timeBoundProgress);
-
-    if (prefersReducedMotion) {
-      displayedProgress = visualTarget;
-    } else {
-      const springForce = (visualTarget - displayedProgress) * countUpStiffness;
-      const dampingForce = -progressVelocity * countUpDamping;
-      const acceleration = springForce + dampingForce;
-
-      progressVelocity += acceleration * deltaSeconds;
-      displayedProgress += progressVelocity * deltaSeconds;
-
-      if (
-        Math.abs(visualTarget - displayedProgress) < 0.06
-        && Math.abs(progressVelocity) < 0.08
-      ) {
-        displayedProgress = visualTarget;
-        progressVelocity = 0;
-      }
-    }
+    displayedProgress = actualProgress;
 
     const clampedDisplayProgress = Math.min(100, Math.max(1, displayedProgress));
     const roundedProgress = Math.round(clampedDisplayProgress);
@@ -618,7 +717,6 @@ function initHomeLoadingScreen() {
     if (reachedCompleteState && completionHoldStart === null) {
       completionHoldStart = now;
       displayedProgress = 100;
-      progressVelocity = 0;
       value.textContent = formatCountUpValue(100);
       updateLabel(100);
       loader.classList.add("is-complete");

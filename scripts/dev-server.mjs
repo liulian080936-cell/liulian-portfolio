@@ -1,4 +1,5 @@
 import http from "node:http";
+import { createReadStream } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 
@@ -31,6 +32,7 @@ const mimeTypes = new Map([
   [".jpg", "image/jpeg"],
   [".jpeg", "image/jpeg"],
   [".webp", "image/webp"],
+  [".mp4", "video/mp4"],
   [".gif", "image/gif"],
   [".ico", "image/x-icon"],
   [".woff2", "font/woff2"],
@@ -38,6 +40,36 @@ const mimeTypes = new Map([
 
 function getContentType(filePath) {
   return mimeTypes.get(path.extname(filePath).toLowerCase()) || "application/octet-stream";
+}
+
+function parseRange(rangeHeader, size) {
+  if (!rangeHeader?.startsWith("bytes=")) return null;
+
+  const [startText, endText] = rangeHeader.replace("bytes=", "").split("-");
+  const hasStart = startText !== "";
+  const hasEnd = endText !== "";
+
+  if (!hasStart && !hasEnd) return null;
+
+  let start = hasStart ? Number(startText) : Number.NaN;
+  let end = hasEnd ? Number(endText) : Number.NaN;
+
+  if (hasStart && !Number.isInteger(start)) return null;
+  if (hasEnd && !Number.isInteger(end)) return null;
+
+  if (!hasStart) {
+    const suffixLength = end;
+    if (suffixLength <= 0) return null;
+    start = Math.max(0, size - suffixLength);
+    end = size - 1;
+  } else {
+    if (start < 0 || start >= size) return null;
+    end = hasEnd ? Math.min(end, size - 1) : size - 1;
+  }
+
+  if (end < start) return null;
+
+  return { start, end };
 }
 
 function resolveRequestPath(root, requestPath) {
@@ -72,11 +104,64 @@ const server = http.createServer(async (req, res) => {
   try {
     const fileStat = await stat(filePath);
     const targetPath = fileStat.isDirectory() ? path.join(filePath, "index.html") : filePath;
+    const targetStat = fileStat.isDirectory() ? await stat(targetPath) : fileStat;
+    const contentType = getContentType(targetPath);
+    const range = parseRange(req.headers.range, targetStat.size);
+
+    if (range) {
+      const { start, end } = range;
+      const chunkSize = end - start + 1;
+
+      res.writeHead(206, {
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "no-cache",
+        "Content-Length": chunkSize,
+        "Content-Range": `bytes ${start}-${end}/${targetStat.size}`,
+        "Content-Type": contentType,
+      });
+
+      if (req.method === "HEAD") {
+        res.end();
+        return;
+      }
+
+      createReadStream(targetPath, { start, end }).pipe(res);
+      return;
+    }
+
+    if (req.headers.range) {
+      res.writeHead(416, {
+        "Content-Range": `bytes */${targetStat.size}`,
+        "Content-Type": "text/plain; charset=utf-8",
+      });
+      res.end("Requested range not satisfiable");
+      return;
+    }
+
+    if (targetStat.size > 2 * 1024 * 1024 || contentType.startsWith("video/")) {
+      res.writeHead(200, {
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "no-cache",
+        "Content-Length": targetStat.size,
+        "Content-Type": contentType,
+      });
+
+      if (req.method === "HEAD") {
+        res.end();
+        return;
+      }
+
+      createReadStream(targetPath).pipe(res);
+      return;
+    }
+
     const body = await readFile(targetPath);
 
     res.writeHead(200, {
-      "Content-Type": getContentType(targetPath),
+      "Accept-Ranges": "bytes",
       "Cache-Control": "no-cache",
+      "Content-Length": body.length,
+      "Content-Type": contentType,
     });
     res.end(body);
   } catch {

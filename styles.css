@@ -94,13 +94,13 @@ body[data-page="home"].is-home-loading .page-shell {
   display: grid;
   align-items: center;
   justify-content: center;
-  grid-template-columns: minmax(140px, 1fr) auto minmax(100px, 1fr);
+  grid-template-columns: 168px clamp(112px, 15vw, 178px) 132px;
   gap: clamp(18px, 5vw, 72px);
 }
 
 .home-loader-copy {
-  justify-self: end;
   margin: 0;
+  justify-self: end;
   font-size: clamp(0.82rem, 0.88vw, 0.96rem);
   line-height: 1.1;
   font-weight: 500;
@@ -114,25 +114,30 @@ body[data-page="home"].is-home-loading .page-shell {
   aspect-ratio: 1 / 1;
 }
 
-.home-loader-fallback {
+.home-loader-video {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  transition: opacity 0.42s ease;
+  display: block;
 }
 
 .home-loader-progress {
   justify-self: start;
+  width: 132px;
 }
 
 .home-loader-value {
   display: inline-flex;
   align-items: baseline;
+  justify-content: flex-start;
   gap: 0;
+  min-width: 132px;
   font-family: var(--font-sans);
   font-size: clamp(2.4rem, 4vw, 3.25rem);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
   line-height: 0.92;
   letter-spacing: -0.06em;
   font-weight: 700;
@@ -221,17 +226,39 @@ a {
   }
 
   .home-loader-shell {
-    width: 100%;
+    width: min(100%, 348px);
   }
 
   .home-loader-track {
-    grid-template-columns: 1fr;
-    gap: 18px;
+    grid-template-columns: 110px 92px 96px;
+    justify-content: center;
+    justify-items: center;
+    gap: 12px;
   }
 
   .home-loader-copy,
+  .home-loader-media,
   .home-loader-progress {
     justify-self: center;
+  }
+
+  .home-loader-copy {
+    font-size: 0.76rem;
+    text-align: center;
+  }
+
+  .home-loader-media {
+    width: 92px;
+  }
+
+  .home-loader-progress {
+    width: 96px;
+  }
+
+  .home-loader-value {
+    min-width: 96px;
+    justify-content: center;
+    font-size: clamp(2rem, 8vw, 2.4rem);
   }
 }
 

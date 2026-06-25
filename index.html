@@ -30,14 +30,18 @@
           <p class="home-loader-copy">LIULIAN by Design</p>
 
           <div class="home-loader-media" aria-hidden="true">
-            <img
-              class="home-loader-fallback"
-              id="homeLoadingFallback"
-              src="./assets/projects/newlife/STG_vessel.gif"
-              alt=""
-              decoding="async"
+            <video
+              class="home-loader-video"
+              id="homeLoadingVideo"
+              autoplay
+              muted
+              playsinline
+              preload="auto"
+              poster="./assets/durian.png"
               aria-hidden="true"
-            />
+            >
+              <source src="./assets/loading/home-loader.mp4" type="video/mp4" />
+            </video>
           </div>
 
           <div class="home-loader-progress" aria-hidden="true">
@@ -46,7 +50,6 @@
             </strong>
           </div>
         </div>
-
         <span class="home-loader-label sr-only" id="homeLoadingLabel">Preparing selected works</span>
       </div>
     </div>
