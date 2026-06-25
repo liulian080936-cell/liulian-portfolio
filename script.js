@@ -100,7 +100,6 @@ const posterArchiveSource = [
       "9-3.webp",
       "9-4.webp",
       "9.webp",
-      "Frame 1612707379.webp",
     ],
   },
   {
@@ -171,8 +170,28 @@ const projectCaseSource = [
       "Storefront views, spatial atmosphere, identity applications, and branded details assembled as one continuous case-study scroll.",
   },
   {
-    slug: "newlife",
+    slug: "fechoes-2024",
     number: "05",
+    title: "FECHOES 2024",
+    subtitle: "未来回声音乐艺术节",
+    discipline: "Festival Identity / Merchandise System",
+    accent: "#53a4d8",
+    summary:
+      "A festival system built across tickets, merchandise, wayfinding, and event-facing graphics with a vivid, high-contrast visual language.",
+  },
+  {
+    slug: "lumos-nyxel",
+    number: "06",
+    title: "LUMOS NYXEL",
+    subtitle: "Smart Bike Helmet",
+    discipline: "Product Campaign / Launch Visuals",
+    accent: "#d7aa58",
+    summary:
+      "Launch imagery and campaign frames for a smart bike helmet, balancing product clarity with night-riding energy and lifestyle storytelling.",
+  },
+  {
+    slug: "newlife",
+    number: "07",
     title: "NEW LIFE",
     subtitle: "新生活新公式",
     discipline: "Campaign Identity / Visual System",
@@ -182,7 +201,7 @@ const projectCaseSource = [
   },
   {
     slug: "throbbing",
-    number: "06",
+    number: "08",
     title: "THROBBING",
     subtitle: "服饰",
     discipline: "Fashion Label / Brand System",
@@ -192,7 +211,7 @@ const projectCaseSource = [
   },
   {
     slug: "alonewild",
-    number: "07",
+    number: "09",
     title: "ALONEWILD",
     subtitle: "在野行",
     discipline: "Outdoor Brand / Visual Identity",
@@ -202,7 +221,7 @@ const projectCaseSource = [
   },
   {
     slug: "supernova",
-    number: "08",
+    number: "10",
     title: "SUPERNOVA FORCE",
     subtitle: "",
     discipline: "Logo System / Brand Identity",
@@ -212,7 +231,7 @@ const projectCaseSource = [
   },
   {
     slug: "zero-m1",
-    number: "09",
+    number: "11",
     title: "ZERO M1",
     subtitle: "",
     discipline: "Brand Identity / Campaign Visuals",
@@ -222,7 +241,7 @@ const projectCaseSource = [
   },
   {
     slug: "ecoflow",
-    number: "10",
+    number: "12",
     title: "ECOFLOW",
     subtitle: "项目",
     discipline: "Campaign Visual / Launch Material",
@@ -232,7 +251,7 @@ const projectCaseSource = [
   },
   {
     slug: "double8-coffee",
-    number: "11",
+    number: "13",
     title: "DOUBLE 8 COFFEE",
     subtitle: "",
     discipline: "Coffee Branding / Visual Identity",
@@ -242,7 +261,7 @@ const projectCaseSource = [
   },
   {
     slug: "fivebook",
-    number: "12",
+    number: "14",
     title: "FIVEBOOK",
     subtitle: "五本书屋",
     discipline: "Bookstore Brand / Space Graphics",
@@ -252,7 +271,7 @@ const projectCaseSource = [
   },
   {
     slug: "flow-in",
-    number: "13",
+    number: "15",
     title: "FLOW IN",
     subtitle: "",
     discipline: "Lifestyle Space / Visual Identity",
@@ -262,7 +281,7 @@ const projectCaseSource = [
   },
   {
     slug: "shake-coffee",
-    number: "14",
+    number: "16",
     title: "SHAKE COFFEE",
     subtitle: "摇coffee",
     discipline: "Illustration Brand / Coffee System",
@@ -327,6 +346,23 @@ const footerPreviewSource = {
       "./assets/posters/home-band/band-08.webp",
     ],
   },
+};
+const projectBrowserPreviewOverrides = {
+  "youth-tour": "./assets/home/youth-tour.webp",
+  nomokids: "./assets/home/nomokids-cover.jpg",
+  "smoo-market": "./assets/home/smoo-cover.jpg",
+  "fechoes-2024": "./assets/projects/fechoes-2024/1.webp",
+  "lumos-nyxel": "./assets/projects/lumos-nyxel/1.webp",
+  newlife: "./assets/home/newlife.webp",
+  throbbing: "./assets/home/throbbing.webp",
+  alonewild: "./assets/home/alonewild.webp",
+  supernova: "./assets/home/supernova.webp",
+  "zero-m1": "./assets/home/zero-m1.webp",
+  ecoflow: "./assets/home/ecoflow.webp",
+  "double8-coffee": "./assets/home/double8-cover.jpg",
+  fivebook: "./assets/home/fivebook.webp",
+  "flow-in": "./assets/home/flowin.webp",
+  "shake-coffee": "./assets/home/shake-coffee.webp",
 };
 
 let activeCardPixelHover = null;
@@ -1899,6 +1935,174 @@ function initFooterLinkPreviews() {
   );
 }
 
+function buildProjectBrowserTags(project, imageCount) {
+  const tags = [];
+
+  if (project.subtitle) {
+    tags.push(project.subtitle);
+  }
+
+  project.discipline
+    .split("/")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .forEach((tag) => tags.push(tag));
+
+  if (imageCount) {
+    tags.push(`${imageCount} frames`);
+  }
+
+  return tags.filter((tag, index) => tags.indexOf(tag) === index).slice(0, 4);
+}
+
+function buildProjectBrowserCatalog() {
+  const manifest = Array.isArray(window.__PROJECT_MANIFEST__) ? window.__PROJECT_MANIFEST__ : [];
+  const manifestMap = new Map(manifest.map((entry) => [entry.slug, entry]));
+
+  return projectCaseSource
+    .map((project) => {
+      const archiveProject = manifestMap.get(project.slug);
+      const imageCount = archiveProject?.imageCount || 0;
+      const previewImage =
+        projectBrowserPreviewOverrides[project.slug] ||
+        archiveProject?.images?.[0] ||
+        "";
+
+      if (!previewImage) return null;
+
+      return {
+        ...project,
+        imageCount,
+        previewImage,
+        tags: buildProjectBrowserTags(project, imageCount),
+        variant: "square",
+        isContain: false,
+      };
+    })
+    .filter(Boolean);
+}
+
+function renderProjectBrowserCard(project) {
+  const tagsMarkup = project.tags
+    .map((tag) => `<span class="project-browser-card-tag">${escapeHtml(tag)}</span>`)
+    .join("");
+
+  return `
+    <a
+      class="project-browser-card${project.isContain ? " is-contain" : ""}"
+      data-variant="${project.variant}"
+      href="./project.html?slug=${encodeURIComponent(project.slug)}"
+      aria-label="查看 ${escapeHtml(project.title)} 项目详情"
+      style="--project-accent: ${project.accent};"
+    >
+      <div class="project-browser-card-surface">
+        <span class="project-browser-card-label">${escapeHtml(project.number)} / ${escapeHtml(project.title)}</span>
+        <span class="project-browser-card-arrow" aria-hidden="true">↗</span>
+        <img
+          class="project-browser-card-image"
+          src="${project.previewImage}"
+          alt="${escapeHtml(project.title)} preview"
+          loading="lazy"
+          decoding="async"
+        />
+        <div class="project-browser-card-tags">
+          ${tagsMarkup}
+        </div>
+      </div>
+    </a>
+  `;
+}
+
+function initProjectBrowserDrawer() {
+  const trigger = document.querySelector("#projectBrowserTrigger");
+  const drawer = document.querySelector("#projectBrowserDrawer");
+  const shell = drawer?.querySelector(".project-browser-shell");
+  const backdrop = document.querySelector("#projectBrowserBackdrop");
+  const grid = document.querySelector("#projectBrowserGrid");
+  const closeButton = document.querySelector("#projectBrowserClose");
+  const count = document.querySelector("#projectBrowserCount");
+  const note = document.querySelector("#projectBrowserNote");
+
+  if (!trigger || !drawer || !shell || !backdrop || !grid || !closeButton || !count || !note) {
+    return;
+  }
+
+  const catalog = buildProjectBrowserCatalog();
+
+  if (!catalog.length) {
+    trigger.hidden = true;
+    return;
+  }
+
+  grid.innerHTML = catalog.map((project) => renderProjectBrowserCard(project)).join("");
+  count.textContent = `${catalog.length} Projects`;
+  note.textContent = `${catalog.length} projects collected in one side preview. Click any card to open the full case study.`;
+
+  let closeTimer = 0;
+  let lastActiveElement = null;
+
+  const openDrawer = () => {
+    window.clearTimeout(closeTimer);
+    lastActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : trigger;
+
+    if (drawer.hidden) {
+      drawer.hidden = false;
+      backdrop.hidden = false;
+    }
+
+    window.requestAnimationFrame(() => {
+      drawer.classList.add("is-open");
+      shell.classList.add("is-open");
+      backdrop.classList.add("is-open");
+      drawer.setAttribute("aria-hidden", "false");
+      trigger.setAttribute("aria-expanded", "true");
+      document.body.classList.add("project-browser-open");
+    });
+
+    closeButton.focus({ preventScroll: true });
+  };
+
+  const closeDrawer = () => {
+    if (drawer.hidden) return;
+
+    drawer.classList.remove("is-open");
+    shell.classList.remove("is-open");
+    backdrop.classList.remove("is-open");
+    drawer.setAttribute("aria-hidden", "true");
+    trigger.setAttribute("aria-expanded", "false");
+    document.body.classList.remove("project-browser-open");
+
+    window.clearTimeout(closeTimer);
+    closeTimer = window.setTimeout(() => {
+      drawer.hidden = true;
+      backdrop.hidden = true;
+      lastActiveElement?.focus?.({ preventScroll: true });
+    }, 280);
+  };
+
+  trigger.addEventListener("click", () => {
+    if (drawer.hidden) {
+      openDrawer();
+      return;
+    }
+
+    closeDrawer();
+  });
+
+  closeButton.addEventListener("click", closeDrawer);
+  backdrop.addEventListener("click", closeDrawer);
+  drawer.addEventListener("click", (event) => {
+    if (event.target !== drawer) return;
+    closeDrawer();
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (drawer.hidden) return;
+    if (event.key !== "Escape") return;
+    closeDrawer();
+  });
+}
+
 function buildProjectFrameLabel(index) {
   return String(index + 1).padStart(2, "0");
 }
@@ -1908,13 +2112,16 @@ function buildProjectGallery(project) {
 
   return images
     .map((src, index) => {
-      const span = projectGallerySpanPattern[index % projectGallerySpanPattern.length];
+      const isClosingFrame = index === images.length - 1;
+      const span = isClosingFrame
+        ? 12
+        : projectGallerySpanPattern[index % projectGallerySpanPattern.length];
       const imageIndex = index + 1;
       const frame = buildProjectFrameLabel(imageIndex);
 
       return `
         <figure
-          class="project-gallery-card project-image-trigger span-${span}"
+          class="project-gallery-card project-image-trigger span-${span}${isClosingFrame ? " is-closing-frame" : ""}"
           tabindex="0"
           role="button"
           aria-haspopup="dialog"
@@ -2646,6 +2853,7 @@ function initPage() {
   if (page === "home") {
     initHomeProjectMediaRatios();
     initFooterLinkPreviews();
+    initProjectBrowserDrawer();
     scheduleNonCriticalTask(() => {
       initGlobalScrambledText();
     }, 240);

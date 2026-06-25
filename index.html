@@ -21,6 +21,16 @@
     <header class="site-header">
       <a class="brand" href="./index.html">LIULIAN <span>by Design</span></a>
       <nav class="site-nav" aria-label="主导航">
+        <button
+          class="site-nav-button project-browser-trigger"
+          id="projectBrowserTrigger"
+          type="button"
+          aria-haspopup="dialog"
+          aria-controls="projectBrowserDrawer"
+          aria-expanded="false"
+        >
+          Projects
+        </button>
         <a href="./posters.html">Posters</a>
         <a href="mailto:liulian080936@gmail.com">Contact</a>
       </nav>
@@ -63,7 +73,7 @@
                 </svg>
               </span>
             </div>
-            <strong>13 Projects / Brand identity / Campaign / Print</strong>
+            <strong>15 Projects / Brand identity / Campaign / Print</strong>
           </div>
 
           <div class="posters-band-strip" aria-hidden="true">
@@ -120,6 +130,28 @@
 
           <div class="home-project-list" aria-label="更多项目">
             <h2 class="home-project-list-heading">MORE SELECTED WORKS</h2>
+
+            <a class="editorial-card home-project-list-item is-link" href="./project.html?slug=fechoes-2024" aria-label="查看 FECHOES 2024 未来回声音乐艺术节 项目详情">
+              <span class="home-project-list-action">[ VIEW PROJECT ]</span>
+              <div class="home-project-list-copy">
+                <strong>FECHOES 2024</strong>
+                <p>A festival identity system spanning tickets, merchandise, signage, and event graphics with a bright, energetic visual rhythm.</p>
+              </div>
+              <div class="card-media home-project-list-media">
+                <img src="./assets/projects/fechoes-2024/1.webp" alt="FECHOES 2024 未来回声音乐艺术节" loading="lazy" fetchpriority="high" decoding="async" />
+              </div>
+            </a>
+
+            <a class="editorial-card home-project-list-item is-link" href="./project.html?slug=lumos-nyxel" aria-label="查看 Lumos Nyxel Smart Bike Helmet 项目详情">
+              <span class="home-project-list-action">[ VIEW PROJECT ]</span>
+              <div class="home-project-list-copy">
+                <strong>LUMOS NYXEL</strong>
+                <p>Launch imagery and campaign art direction for a smart bike helmet built for visible, night-first urban riding.</p>
+              </div>
+              <div class="card-media home-project-list-media">
+                <img src="./assets/projects/lumos-nyxel/1.webp" alt="Lumos Nyxel Smart Bike Helmet" loading="lazy" fetchpriority="high" decoding="async" />
+              </div>
+            </a>
 
             <a class="editorial-card home-project-list-item is-link" href="./project.html?slug=newlife" aria-label="查看 新生活新公式 项目详情">
               <span class="home-project-list-action">[ VIEW PROJECT ]</span>
@@ -324,6 +356,37 @@
       </footer>
     </main>
 
+    <div class="project-browser-backdrop" id="projectBrowserBackdrop" hidden></div>
+    <aside
+      class="project-browser-drawer"
+      id="projectBrowserDrawer"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="projectBrowserTitle"
+      aria-hidden="true"
+      data-scramble-skip="true"
+      hidden
+    >
+      <div class="project-browser-shell">
+        <div class="project-browser-head">
+          <div class="project-browser-copy">
+            <span class="project-browser-kicker">Project Archive</span>
+            <h2 id="projectBrowserTitle">Selected Works</h2>
+            <p id="projectBrowserNote">15 projects collected in one side preview. Click any card to open the full case study.</p>
+          </div>
+          <div class="project-browser-head-actions">
+            <span class="project-browser-count" id="projectBrowserCount">15 Projects</span>
+            <button class="project-browser-close" id="projectBrowserClose" type="button" aria-label="关闭项目预览">
+              ×
+            </button>
+          </div>
+        </div>
+
+        <div class="project-browser-grid" id="projectBrowserGrid"></div>
+      </div>
+    </aside>
+
+    <script src="./assets/projects/manifest.js"></script>
     <script src="./node_modules/gsap/dist/gsap.min.js"></script>
     <script src="./script.js"></script>
   </body>

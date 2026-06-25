@@ -163,6 +163,44 @@
     ]
   },
   {
+    "slug": "fechoes-2024",
+    "imageCount": 16,
+    "images": [
+      "./assets/projects/fechoes-2024/1.webp",
+      "./assets/projects/fechoes-2024/2.webp",
+      "./assets/projects/fechoes-2024/3.webp",
+      "./assets/projects/fechoes-2024/4.webp",
+      "./assets/projects/fechoes-2024/5.webp",
+      "./assets/projects/fechoes-2024/6.webp",
+      "./assets/projects/fechoes-2024/7.webp",
+      "./assets/projects/fechoes-2024/8.webp",
+      "./assets/projects/fechoes-2024/9.webp",
+      "./assets/projects/fechoes-2024/10.webp",
+      "./assets/projects/fechoes-2024/11.webp",
+      "./assets/projects/fechoes-2024/12.webp",
+      "./assets/projects/fechoes-2024/13.webp",
+      "./assets/projects/fechoes-2024/14.webp",
+      "./assets/projects/fechoes-2024/15.webp",
+      "./assets/projects/fechoes-2024/16.webp"
+    ]
+  },
+  {
+    "slug": "lumos-nyxel",
+    "imageCount": 10,
+    "images": [
+      "./assets/projects/lumos-nyxel/1.webp",
+      "./assets/projects/lumos-nyxel/2.webp",
+      "./assets/projects/lumos-nyxel/3.webp",
+      "./assets/projects/lumos-nyxel/4.webp",
+      "./assets/projects/lumos-nyxel/5.webp",
+      "./assets/projects/lumos-nyxel/6.webp",
+      "./assets/projects/lumos-nyxel/7.webp",
+      "./assets/projects/lumos-nyxel/8.webp",
+      "./assets/projects/lumos-nyxel/9.webp",
+      "./assets/projects/lumos-nyxel/10.webp"
+    ]
+  },
+  {
     "slug": "newlife",
     "imageCount": 24,
     "images": [
