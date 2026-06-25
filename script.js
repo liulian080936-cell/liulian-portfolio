@@ -416,6 +416,281 @@ function scheduleNonCriticalTask(task, timeout = 600) {
   return window.setTimeout(task, Math.min(timeout, 180));
 }
 
+function getCountUpDecimalPlaces(number) {
+  const text = number.toString();
+
+  if (text.includes(".")) {
+    const decimals = text.split(".")[1];
+    if (Number.parseInt(decimals, 10) !== 0) {
+      return decimals.length;
+    }
+  }
+
+  return 0;
+}
+
+function createCountUpFormatter(from, to, separator = "") {
+  const maxDecimals = Math.max(
+    getCountUpDecimalPlaces(from),
+    getCountUpDecimalPlaces(to),
+  );
+
+  return (latest) => {
+    const hasDecimals = maxDecimals > 0;
+    const formattedNumber = Intl.NumberFormat("en-US", {
+      useGrouping: Boolean(separator),
+      minimumFractionDigits: hasDecimals ? maxDecimals : 0,
+      maximumFractionDigits: hasDecimals ? maxDecimals : 0,
+    }).format(latest);
+
+    return separator ? formattedNumber.replace(/,/g, separator) : formattedNumber;
+  };
+}
+
+function initHomeLoadingScreen() {
+  const loader = document.getElementById("homeLoadingScreen");
+  const value = document.getElementById("homeLoadingValue");
+  const label = document.getElementById("homeLoadingLabel");
+  const video = document.getElementById("homeLoadingVideo");
+
+  if (!loader || !value || !label) return;
+
+  const body = document.body;
+  const startTime = performance.now();
+  const minDuration = 1800;
+  const maxDuration = 12000;
+  const preCompleteCap = 96;
+  const completionHoldDuration = 320;
+  const exitDuration = 760;
+  const completionSnapThreshold = 99.4;
+  const countUpDuration = 1;
+  const countUpDamping = 20 + 40 * (1 / countUpDuration);
+  const countUpStiffness = 100 * (1 / countUpDuration);
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const formatCountUpValue = createCountUpFormatter(0, 100);
+  const trackedImages = Array.from(document.querySelectorAll("main img"));
+
+  let trackedAssetCount = trackedImages.length;
+  let loadedAssetCount = 0;
+  let actualProgress = trackedAssetCount ? 6 : 22;
+  let displayedProgress = 1;
+  let progressVelocity = 0;
+  let pageLoaded = document.readyState === "complete";
+  let finishRequested = false;
+  let exitTriggered = false;
+  let completionHoldStart = null;
+  let lastFrameTime = startTime;
+
+  body.classList.add("is-home-loading");
+  body.setAttribute("aria-busy", "true");
+
+  value.textContent = formatCountUpValue(displayedProgress);
+
+  const updateLabel = (progress) => {
+    if (progress < 34) {
+      label.textContent = "Preparing selected works";
+      return;
+    }
+
+    if (progress < 72) {
+      label.textContent = "Loading homepage images";
+      return;
+    }
+
+    if (progress < 100) {
+      label.textContent = "Finalizing home experience";
+      return;
+    }
+
+    label.textContent = "Entering selected works";
+  };
+
+  const refreshActualProgress = () => {
+    const assetProgress = trackedAssetCount
+      ? Math.min(1, loadedAssetCount / trackedAssetCount)
+      : 1;
+    const nextProgress = pageLoaded ? 100 : 10 + assetProgress * (preCompleteCap - 10);
+    actualProgress = Math.max(
+      actualProgress,
+      Math.min(nextProgress, finishRequested ? 100 : preCompleteCap),
+    );
+  };
+
+  const markAssetLoaded = () => {
+    loadedAssetCount += 1;
+    refreshActualProgress();
+  };
+
+  trackedImages.forEach((image) => {
+    image.loading = "eager";
+    image.setAttribute("loading", "eager");
+    image.setAttribute("fetchpriority", "high");
+
+    if ("fetchPriority" in image) {
+      image.fetchPriority = "high";
+    }
+
+    if (image.complete) {
+      markAssetLoaded();
+      return;
+    }
+
+    image.addEventListener("load", markAssetLoaded, { once: true });
+    image.addEventListener("error", markAssetLoaded, { once: true });
+  });
+
+  if (video instanceof HTMLVideoElement) {
+    trackedAssetCount += 1;
+
+    let videoHandled = false;
+    const handleVideoProgress = (hasVideo) => {
+      if (videoHandled) return;
+      videoHandled = true;
+
+      if (hasVideo) {
+        loader.classList.add("has-video");
+      }
+
+      markAssetLoaded();
+    };
+
+    if (video.readyState >= 2) {
+      handleVideoProgress(true);
+    } else {
+      const videoFallbackTimer = window.setTimeout(() => {
+        handleVideoProgress(false);
+      }, 1600);
+      const resolveVideoProgress = (hasVideo) => {
+        window.clearTimeout(videoFallbackTimer);
+        handleVideoProgress(hasVideo);
+      };
+
+      video.addEventListener("loadeddata", () => resolveVideoProgress(true), { once: true });
+      video.addEventListener("canplay", () => resolveVideoProgress(true), { once: true });
+      video.addEventListener("error", () => resolveVideoProgress(false), { once: true });
+
+      const playPromise = video.play();
+      if (playPromise?.catch) {
+        playPromise.catch(() => {
+          resolveVideoProgress(false);
+        });
+      }
+    }
+  }
+
+  const maybeFinish = (now) => {
+    const elapsed = now - startTime;
+    const assetsReady = loadedAssetCount >= trackedAssetCount;
+
+    if (finishRequested) {
+      actualProgress = 100;
+      return;
+    }
+
+    if (pageLoaded && assetsReady && elapsed >= minDuration) {
+      finishRequested = true;
+      actualProgress = 100;
+      return;
+    }
+
+    if (elapsed >= maxDuration) {
+      finishRequested = true;
+      actualProgress = 100;
+    }
+  };
+
+  const exitLoader = () => {
+    if (exitTriggered) return;
+
+    exitTriggered = true;
+    updateLabel(100);
+    loader.classList.add("is-exiting");
+    body.classList.remove("is-home-loading");
+    body.classList.add("is-home-loading-revealing");
+    body.removeAttribute("aria-busy");
+
+    window.setTimeout(() => {
+      body.classList.remove("is-home-loading-revealing");
+      loader.hidden = true;
+      loader.remove();
+    }, exitDuration);
+  };
+
+  const animateProgress = (now) => {
+    maybeFinish(now);
+
+    const elapsed = now - startTime;
+    const deltaSeconds = Math.min(0.05, Math.max(1 / 120, (now - lastFrameTime) / 1000));
+    lastFrameTime = now;
+    const timeBoundProgress = finishRequested
+      ? 100
+      : elapsed <= minDuration
+        ? 4 + (elapsed / minDuration) * 82
+        : 86 + Math.min(1, (elapsed - minDuration) / (maxDuration - minDuration)) * 10;
+    const visualTarget = Math.min(actualProgress, timeBoundProgress);
+
+    if (prefersReducedMotion) {
+      displayedProgress = visualTarget;
+    } else {
+      const springForce = (visualTarget - displayedProgress) * countUpStiffness;
+      const dampingForce = -progressVelocity * countUpDamping;
+      const acceleration = springForce + dampingForce;
+
+      progressVelocity += acceleration * deltaSeconds;
+      displayedProgress += progressVelocity * deltaSeconds;
+
+      if (
+        Math.abs(visualTarget - displayedProgress) < 0.06
+        && Math.abs(progressVelocity) < 0.08
+      ) {
+        displayedProgress = visualTarget;
+        progressVelocity = 0;
+      }
+    }
+
+    const clampedDisplayProgress = Math.min(100, Math.max(1, displayedProgress));
+    const roundedProgress = Math.round(clampedDisplayProgress);
+    value.textContent = formatCountUpValue(clampedDisplayProgress);
+    updateLabel(roundedProgress);
+    const reachedCompleteState = finishRequested
+      && (roundedProgress >= 100 || clampedDisplayProgress >= completionSnapThreshold);
+
+    if (reachedCompleteState && completionHoldStart === null) {
+      completionHoldStart = now;
+      displayedProgress = 100;
+      progressVelocity = 0;
+      value.textContent = formatCountUpValue(100);
+      updateLabel(100);
+      loader.classList.add("is-complete");
+    }
+
+    if (
+      completionHoldStart !== null
+      && now - completionHoldStart >= completionHoldDuration
+    ) {
+      exitLoader();
+      return;
+    }
+
+    window.requestAnimationFrame(animateProgress);
+  };
+
+  if (!pageLoaded) {
+    window.addEventListener(
+      "load",
+      () => {
+        pageLoaded = true;
+        refreshActualProgress();
+      },
+      { once: true },
+    );
+  }
+
+  refreshActualProgress();
+  updateLabel(1);
+  window.requestAnimationFrame(animateProgress);
+}
+
 function canUseScrambledText() {
   return Boolean(window.gsap)
     && !window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -2851,6 +3126,7 @@ function initPage() {
   }
 
   if (page === "home") {
+    initHomeLoadingScreen();
     initHomeProjectMediaRatios();
     initFooterLinkPreviews();
     initProjectBrowserDrawer();

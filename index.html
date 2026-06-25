@@ -18,6 +18,51 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body data-page="home">
+    <div
+      class="home-loader"
+      id="homeLoadingScreen"
+      aria-live="polite"
+      aria-label="Loading selected works"
+      data-scramble-skip="true"
+    >
+      <div class="home-loader-shell">
+        <div class="home-loader-track">
+          <p class="home-loader-copy">LIULIAN by Design</p>
+
+          <div class="home-loader-media" aria-hidden="true">
+            <img
+              class="home-loader-fallback"
+              id="homeLoadingFallback"
+              src="./assets/projects/newlife/STG_vessel.gif"
+              alt=""
+              decoding="async"
+              aria-hidden="true"
+            />
+            <video
+              class="home-loader-video"
+              id="homeLoadingVideo"
+              autoplay
+              muted
+              loop
+              playsinline
+              preload="auto"
+              aria-hidden="true"
+            >
+              <source src="./assets/loading/home-loader.mp4" type="video/mp4" />
+            </video>
+          </div>
+
+          <div class="home-loader-progress" aria-hidden="true">
+            <strong class="home-loader-value">
+              <span id="homeLoadingValue">1</span><span class="home-loader-suffix">%</span>
+            </strong>
+          </div>
+        </div>
+
+        <span class="home-loader-label sr-only" id="homeLoadingLabel">Preparing selected works</span>
+      </div>
+    </div>
+
     <header class="site-header">
       <a class="brand" href="./index.html">LIULIAN <span>by Design</span></a>
       <nav class="site-nav" aria-label="主导航">
