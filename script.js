@@ -466,7 +466,7 @@ function initHomeLoadingScreen() {
   const completionSnapThreshold = 99.4;
   const formatCountUpValue = createCountUpFormatter(0, 100);
   const trackedImages = Array.from(document.querySelectorAll("main img"));
-  const videoStartTime = 0.72;
+  const videoStartTime = 0;
   const videoCompletionThreshold = 0.985;
   const videoPlaybackRate = prefersReducedMotion ? 1 : 2;
 
@@ -588,7 +588,7 @@ function initHomeLoadingScreen() {
       const maxSeek = duration > 0 ? Math.max(0, duration - 0.25) : 0;
       const seekTime = Math.min(videoStartTime, maxSeek);
 
-      if (seekTime > 0 && Math.abs(video.currentTime - seekTime) > 0.08) {
+      if (Math.abs(video.currentTime - seekTime) > 0.08) {
         try {
           video.currentTime = seekTime;
         } catch {
@@ -597,6 +597,15 @@ function initHomeLoadingScreen() {
       }
 
       video.playbackRate = videoPlaybackRate;
+    };
+
+    const resumeVideoPlayback = () => {
+      const playPromise = video.play();
+      if (playPromise?.catch) {
+        playPromise.catch(() => {
+          videoSequenceComplete = true;
+        });
+      }
     };
 
     const markVideoSequenceComplete = () => {
@@ -627,25 +636,23 @@ function initHomeLoadingScreen() {
     if (video.readyState >= 2) {
       syncVideoTiming();
       handleVideoProgress(true);
+      resumeVideoPlayback();
     } else {
       const videoFallbackTimer = window.setTimeout(() => {
         handleVideoProgress(false);
       }, 1600);
       const resolveVideoProgress = (hasVideo) => {
         window.clearTimeout(videoFallbackTimer);
+        if (hasVideo) {
+          syncVideoTiming();
+          resumeVideoPlayback();
+        }
         handleVideoProgress(hasVideo);
       };
 
       video.addEventListener("loadeddata", () => resolveVideoProgress(true), { once: true });
       video.addEventListener("canplay", () => resolveVideoProgress(true), { once: true });
       video.addEventListener("error", () => resolveVideoProgress(false), { once: true });
-
-      const playPromise = video.play();
-      if (playPromise?.catch) {
-        playPromise.catch(() => {
-          resolveVideoProgress(false);
-        });
-      }
     }
 
     if (video.readyState >= 1) {
