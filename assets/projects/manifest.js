@@ -230,6 +230,7 @@ window.__PROJECT_MANIFEST__ = [
     "slug": "newlife",
     "imageCount": 24,
     "images": [
+      "./assets/projects/newlife/18.webp",
       "./assets/projects/newlife/1.webp",
       "./assets/projects/newlife/2.webp",
       "./assets/projects/newlife/3.webp",
@@ -246,7 +247,6 @@ window.__PROJECT_MANIFEST__ = [
       "./assets/projects/newlife/14.webp",
       "./assets/projects/newlife/15.webp",
       "./assets/projects/newlife/16.webp",
-      "./assets/projects/newlife/18.webp",
       "./assets/projects/newlife/19.webp",
       "./assets/projects/newlife/20.webp",
       "./assets/projects/newlife/21.webp",

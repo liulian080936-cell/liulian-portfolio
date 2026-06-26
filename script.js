@@ -562,7 +562,7 @@ const footerPreviewSource = {
     note: "Project lead images cycling every second.",
     images: [
       "./assets/projects/youth-tour/1.webp",
-      "./assets/projects/newlife/1.webp",
+      "./assets/projects/newlife/18.webp",
       "./assets/projects/fivebook/1.webp",
       "./assets/projects/double8-coffee/1.webp",
       "./assets/projects/zero-m1/1.webp",
@@ -592,7 +592,7 @@ const projectBrowserPreviewOverrides = {
   "smoo-market": "./assets/home/smoo-cover.jpg",
   "fechoes-2024": "./assets/projects/fechoes-2024/1.webp",
   "lumos-nyxel": "./assets/projects/lumos-nyxel/1.webp",
-  newlife: "./assets/home/newlife.webp",
+  newlife: "./assets/projects/newlife/18.webp",
   throbbing: "./assets/home/throbbing.webp",
   alonewild: "./assets/home/alonewild.webp",
   supernova: "./assets/home/supernova.webp",
