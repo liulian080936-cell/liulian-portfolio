@@ -704,14 +704,21 @@ function initHomeLoadingScreen() {
   const body = document.body;
   const startTime = performance.now();
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const minDuration = prefersReducedMotion ? 1800 : 3200;
-  const maxDuration = 12000;
-  const preCompleteCap = prefersReducedMotion ? 96 : 98;
-  const completionHoldDuration = prefersReducedMotion ? 180 : 260;
-  const exitDuration = 560;
+  const minDuration = prefersReducedMotion ? 900 : 1500;
+  const maxDuration = 7000;
+  const preCompleteCap = prefersReducedMotion ? 95 : 97;
+  const completionHoldDuration = prefersReducedMotion ? 120 : 180;
+  const exitDuration = 420;
   const completionSnapThreshold = 99.4;
   const formatCountUpValue = createCountUpFormatter(0, 100);
-  const trackedImages = Array.from(document.querySelectorAll("main img"));
+  const trackedImages = Array.from(
+    document.querySelectorAll(
+      [
+        ".home-project-row .home-project-media img",
+        ".posters-band-strip .poster-thumb:nth-child(-n+2) img",
+      ].join(", "),
+    ),
+  );
   const videoStartTime = 0;
   const videoCompletionThreshold = 0.985;
   const videoPlaybackRate = prefersReducedMotion ? 1 : 2;
@@ -886,7 +893,7 @@ function initHomeLoadingScreen() {
     } else {
       const videoFallbackTimer = window.setTimeout(() => {
         handleVideoProgress(false);
-      }, 1600);
+      }, 900);
       const resolveVideoProgress = (hasVideo) => {
         window.clearTimeout(videoFallbackTimer);
         if (hasVideo) {
@@ -926,7 +933,7 @@ function initHomeLoadingScreen() {
       return;
     }
 
-    if (pageLoaded && assetsReady && elapsed >= minDuration && videoSequenceComplete) {
+    if (pageLoaded && assetsReady && elapsed >= minDuration) {
       finishRequested = true;
       actualProgress = 100;
       return;
