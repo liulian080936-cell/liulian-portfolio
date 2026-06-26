@@ -129,6 +129,104 @@ const posterArchiveSource = [
 ];
 
 const posterSeriesPattern = /^(\d+)(?:-(\d+))?\.(png|jpe?g|webp)$/i;
+const posterArchiveTitles = {
+  "2026": {
+    1: "Wild Sparrow Matcha Cocoa Festival / 野雀抹茶可可节",
+    2: "In Commemoration of Myself Who Is Still Striving Late Into the Night / 纪念深夜仍在努力的自己",
+    3: "Connoisseur Lounge / 微醺品酒沙龙",
+    4: "Take a Break / 放纵一下",
+    5: "Wild Sound Festival / 黑桃音乐节",
+    6: "Ordered Love / Disordered Demise",
+    7: "Rainy Days Bring No Peace / 晴无闲时，雨无静时",
+    8: "MUSILAC AIX",
+  },
+  "2024 & 2025": {
+    1: "头脑中的魔怪",
+    2: "Flooding, Erring and Fading Out",
+    3: "L'Addition",
+    4: "胜利会回答一切",
+    5: "Work Refueling Station / 工作加油站",
+    6: "2025",
+    7: "Did You Clean Your Room Today / 今天打扫房间了吗",
+    8: "REBIRTH",
+    9: "器",
+    10: "SHUIJUE",
+    11: "19:00 / 21:00 / 03:00 / 02:25",
+    12: "Theme Resonance / 新媒体与声音艺术展",
+    13: "Thinking Straight in the Age of Information Overload",
+    14: "Urban Echoes and Fragments",
+    15: "Clay Joy Handmade Ceramics Workshop / 陶然自得",
+  },
+  "2023": {
+    2: "There's No Secret Between Us / 我们之间本就没有秘密",
+    3: "CONFESSIONS / BLOOD",
+    4: "孩子的诡计多端",
+    5: "时间凝固，世界只有你我",
+    6: "ESCAPE / 逃脱地球计划",
+    7: "Crazy Friday / 准时下班",
+    8: "Black Water / 黑水",
+    9: "Digital Plants / 数码植物新时代",
+    10: "My Attention Eye",
+    11: "Untitled",
+    12: "REDBOX",
+    13: "221104-0204 / club080936",
+    14: "I Meet the Moon Every Night",
+    15: "KID / 小孩",
+    16: "CHAIN UP",
+    18: "SEEING IS",
+    19: "CHAOS",
+    20: "Silence Full Of",
+  },
+};
+const posterArchiveCardTitles = {
+  "2026": {
+    1: "Wild Sparrow / 野雀",
+    2: "Late Night / 深夜",
+    3: "Connoisseur Lounge / 微醺",
+    4: "Take a Break / 放纵一下",
+    5: "Wild Sound / 黑桃",
+    6: "Ordered Love / 火商",
+    7: "Rainy Days / 雨无静时",
+    8: "MUSILAC AIX",
+  },
+  "2024 & 2025": {
+    1: "Monster Mind / 头脑魔怪",
+    2: "Flooding",
+    3: "L'Addition",
+    4: "Victory / 胜利会回答一切",
+    5: "Refueling Station / 工作加油站",
+    6: "2025",
+    7: "Clean Your Room / 打扫房间了吗",
+    8: "REBIRTH",
+    9: "器",
+    10: "SHUIJUE",
+    11: "Time Notes / 时间切片",
+    12: "Theme Resonance / 共振",
+    13: "Thinking Straight / 直线思考",
+    14: "Urban Echoes / 城市回声",
+    15: "Clay Joy / 陶然自得",
+  },
+  "2023": {
+    2: "No Secret / 没有秘密",
+    3: "Confessions / 血色告白",
+    4: "Childhood Tricks / 孩子的诡计",
+    5: "Still Time / 时间凝固",
+    6: "Escape Plan / 逃脱地球",
+    7: "Friday / 准时下班",
+    8: "Black Water / 黑水",
+    9: "Digital Plants / 数码植物",
+    10: "Attention Eye / 注视",
+    11: "Untitled",
+    12: "REDBOX",
+    13: "club080936",
+    14: "Moon / 月见",
+    15: "KID / 小孩",
+    16: "CHAIN UP",
+    18: "SEEING IS",
+    19: "CHAOS",
+    20: "Silence Full Of",
+  },
+};
 const posterPixelHoverConfig = {
   gap: 12,
   speed: 28,
@@ -148,6 +246,14 @@ const projectCaseSource = [
     accent: "#c7ba4a",
     summary:
       "A long-form selection of project frames, kept spacious and sequential to let the visual material carry the narrative.",
+    detailZh: [
+      "《少年游》围绕品牌识别与 campaign 视觉展开，以更松弛的编排保留项目画面的呼吸感。",
+      "整个案例更强调图像之间的节奏与游感，让视觉叙述像一次轻快展开的旅程。",
+    ],
+    detailEn: [
+      "YOUTH TOUR brings brand identity and campaign visuals into a lighter editorial rhythm.",
+      "The case study focuses on pacing and atmosphere, letting the images move like a quiet journey.",
+    ],
   },
   {
     slug: "nomokids",
@@ -158,6 +264,14 @@ const projectCaseSource = [
     accent: "#8fa9b8",
     summary:
       "A playful identity archive presented with broad white space, sharp sequencing, and a loose editorial rhythm.",
+    detailZh: [
+      "NOMO 源自全球流行文化中代表极致进食快感的拟声词“OMNOM NOM”。我们将这一声音重新定义为“宝宝大口吃饭的声音”，让进食从单纯的生理喂养，转化为一场充满乐趣的感官探索。",
+      "我们用最柔和的圆弧线条包裹着探索之心。那个探头张望的形象，既像是在问“好吃的在哪里？”，也像是在问“这个世界是什么样的？”，诠释了“好奇心是最好的胃口”。",
+    ],
+    detailEn: [
+      "NOMO reimagines “OMNOM NOM” as the joyful sound of a baby eating, turning feeding into a playful sensory experience.",
+      "Soft rounded forms and a curious peeking character express one idea: curiosity is the best appetite.",
+    ],
   },
   {
     slug: "smoo-market",
@@ -168,6 +282,14 @@ const projectCaseSource = [
     accent: "#6b7c58",
     summary:
       "Storefront views, spatial atmosphere, identity applications, and branded details assembled as one continuous case-study scroll.",
+    detailZh: [
+      "SMOO MARKET 以社区零售与空间氛围为核心，把门店、陈列、导视与品牌细节整理成一套连续体验。",
+      "它更关注社区日常中的亲近感，让品牌在使用场景里自然发生。",
+    ],
+    detailEn: [
+      "SMOO MARKET is built around community retail and spatial atmosphere.",
+      "Storefront, wayfinding, and branded details are shaped into a warm everyday experience.",
+    ],
   },
   {
     slug: "fechoes-2024",
@@ -178,6 +300,14 @@ const projectCaseSource = [
     accent: "#53a4d8",
     summary:
       "A festival system built across tickets, merchandise, wayfinding, and event-facing graphics with a vivid, high-contrast visual language.",
+    detailZh: [
+      "FECHOES 2024 是一场融合音乐、艺术与科技的先锋音乐节，于 2024 年 9 月 6 日至 8 日在北京郎园 Station 举办。",
+      "我们以鹦鹉螺、双螺旋与树状分支三种自然造物为基础进行人工建模，用近似绘画的光影渲染去模糊自然与人造、实体与数据之间的边界，隐喻未来音乐创作在生成式工具持续迭代下的可能性。",
+    ],
+    detailEn: [
+      "FECHOES 2024 is a festival identity built around music, art, and technology.",
+      "Natural forms are re-rendered as hybrid light structures to suggest future music-making.",
+    ],
   },
   {
     slug: "lumos-nyxel",
@@ -188,6 +318,14 @@ const projectCaseSource = [
     accent: "#d7aa58",
     summary:
       "Launch imagery and campaign frames for a smart bike helmet, balancing product clarity with night-riding energy and lifestyle storytelling.",
+    detailZh: [
+      "城市骑行安全需要被重新定义，尤其在夜间与低光环境里，传统头盔的被动防护并不能解决“被看见”这个核心问题。",
+      "作为智慧骑行装备的创新者，Lumos 从真实用户痛点出发，让 Nyxel 成为一款把汽车级主动安全技术带入头盔系统的产品，用更主动的方式回应城市夜骑的安全需求。",
+    ],
+    detailEn: [
+      "Lumos Nyxel focuses on the core safety problem of being seen at night.",
+      "The campaign frames the helmet as an active urban-riding system, not passive protection alone.",
+    ],
   },
   {
     slug: "newlife",
@@ -198,6 +336,14 @@ const projectCaseSource = [
     accent: "#ce5c48",
     summary:
       "Campaign visuals, layout studies, and applied touchpoints are unfolded in a paced, image-led presentation.",
+    detailZh: [
+      "NEW LIFE 关注现代社会对健康生活方式的持续追求，希望把“新方式、新生活”的观念带入新的时代语境。",
+      "项目的核心在于把“公式”转化为一套可被感知、可被使用、也可在不同场景中扩展的视觉方法，让精神与物质的富足之外，身体训练也成为日常生活的一部分。",
+    ],
+    detailEn: [
+      "NEW LIFE translates a health-driven lifestyle into a flexible visual formula.",
+      "The system is built to adapt across daily use, training, and wider brand applications.",
+    ],
   },
   {
     slug: "throbbing",
@@ -208,6 +354,14 @@ const projectCaseSource = [
     accent: "#2e2827",
     summary:
       "A fashion-facing case study balancing raw imagery, brand surfaces, and bolder full-width visual anchors.",
+    detailZh: [
+      "THROBBING 是一个以轻休闲、轻日常为出发点的设计师生活品牌，围绕轻松的城市生活方式展开。",
+      "我们用情绪去描绘不同人对“轻”的诠释，希望产品不只通过贴身服饰来代表生活方式，也能从使用者的反馈中不断生长出属于“ing”的生活体验。",
+    ],
+    detailEn: [
+      "THROBBING is a relaxed lifestyle label shaped by light urban living.",
+      "The identity turns emotion and daily feedback into an ongoing “ing” experience.",
+    ],
   },
   {
     slug: "alonewild",
@@ -218,6 +372,14 @@ const projectCaseSource = [
     accent: "#857552",
     summary:
       "Outdoor mood, branding applications, and campaign stills arranged as a single flowing visual document.",
+    detailZh: [
+      "ALONEWILD 以自然纹理、户外场景与实际应用为核心，建立一套更贴近城市露营语境的品牌形象。",
+      "视觉在野外感受与日常使用之间保持平衡，让品牌既有情境也有落地性。",
+    ],
+    detailEn: [
+      "ALONEWILD builds a brand identity from natural textures, outdoor mood, and practical use.",
+      "The system balances field atmosphere with everyday applications.",
+    ],
   },
   {
     slug: "supernova",
@@ -228,6 +390,16 @@ const projectCaseSource = [
     accent: "#50576f",
     summary:
       "A compact but high-contrast identity presentation built from logo studies, applications, and final brand moments.",
+    detailZh: [
+      "当科技吞噬黎明，唯有破碎者能重燃光芒。SUPERNOVA FORCE 诞生于近未来巨型都市“新曙城”的末日叙事：暗物质侵蚀地核，重力倒转，精英阶层正策划逃离地球。",
+      "五位被社会遗弃的超能力者被迫成为文明最后的希望。这个视觉系统围绕毁灭、赎罪、否定、代价与守护展开，用高能量的图形语言为这组角色建立一套未来感强烈的品牌世界观。",
+      "平面设计：LIULIAN / 3D 设计：博文",
+    ],
+    detailEn: [
+      "SUPERNOVA FORCE imagines a near-future world where discarded heroes become civilization’s last hope.",
+      "The identity uses charged forms and cinematic contrast to build that mythic universe.",
+      "Graphic Design: LIULIAN / 3D Design: Bowen",
+    ],
   },
   {
     slug: "zero-m1",
@@ -238,6 +410,14 @@ const projectCaseSource = [
     accent: "#5a6f86",
     summary:
       "A future-facing visual identity built through robotic product imagery, interface-led graphics, and stark campaign compositions.",
+    detailZh: [
+      "ZERO M1 以机器人产品、界面图形与未来叙事构成视觉识别，呈现出克制而锋利的科技感。",
+      "整体语言以产品为中心，在品牌表达与未来想象之间保持清晰方向。",
+    ],
+    detailEn: [
+      "ZERO M1 builds its identity through robotic imagery, interface graphics, and a restrained future tone.",
+      "The system stays product-led while keeping a clear speculative edge.",
+    ],
   },
   {
     slug: "ecoflow",
@@ -248,6 +428,14 @@ const projectCaseSource = [
     accent: "#3a7070",
     summary:
       "A concise project page that keeps each frame prominent and gives the launch material generous breathing room.",
+    detailZh: [
+      "ECOFLOW 以发布物料与传播视觉为核心，强调便携能源产品在沟通上的清晰度与节奏感。",
+      "页面保持简洁直接的展示方式，让每一张关键画面都更有分量。",
+    ],
+    detailEn: [
+      "ECOFLOW focuses on launch graphics and communication clarity for portable energy products.",
+      "The page keeps the presentation direct so each frame carries more weight.",
+    ],
   },
   {
     slug: "double8-coffee",
@@ -258,6 +446,14 @@ const projectCaseSource = [
     accent: "#8c6652",
     summary:
       "Identity-led coffee branding shown through signage, graphics, mockups, and real-world placement images.",
+    detailZh: [
+      "DOUBLE 8 COFFEE 通过招牌、包装、图形与空间应用建立一套完整的咖啡品牌形象。",
+      "整体视觉在日常亲和力与识别度之间保持平衡。",
+    ],
+    detailEn: [
+      "DOUBLE 8 COFFEE builds its identity through signage, packaging, graphics, and space.",
+      "The visual language stays friendly, direct, and recognisable.",
+    ],
   },
   {
     slug: "fivebook",
@@ -268,6 +464,14 @@ const projectCaseSource = [
     accent: "#9a7a5e",
     summary:
       "A bookstore identity unfolded through environmental views, print surfaces, and a steady visual cadence.",
+    detailZh: [
+      "五本书屋希望为当代年轻人打造一个兼具阅读、借阅与自习体验的复合型空间，把传统书店与需要个人学习空间的当代习惯结合在一起。",
+      "我们更愿意把书店理解成一个“Room”。设计以书本为核心意象，用书本搭建一个属于自己的学习乌托邦，把家的体验与通过书籍认知世界的温度一起带给年轻人，在趣味与秩序之间保留空间的意义。",
+    ],
+    detailEn: [
+      "Fivebook treats the bookstore as a room for reading, studying, and staying.",
+      "Books become the visual core of a warm, personal learning space.",
+    ],
   },
   {
     slug: "flow-in",
@@ -278,6 +482,14 @@ const projectCaseSource = [
     accent: "#7088a6",
     summary:
       "A dense archive of applied brand imagery, paced through alternating wide spreads and tighter editorial clusters.",
+    detailZh: [
+      "FLOW IN 是一个专注于在大自然中寻找简单欢乐的户外品牌，相信户外出行不必复杂。",
+      "它通过产品与活动让自然体验变得更简单、更容易抵达，让任何人都能随时随地走进户外，因为大自然本来就是我们天然的游乐场。",
+    ],
+    detailEn: [
+      "FLOW IN is an outdoor brand built on simple joy in nature.",
+      "The identity makes the outdoors feel easy, open, and close to everyday life.",
+    ],
   },
   {
     slug: "shake-coffee",
@@ -288,6 +500,14 @@ const projectCaseSource = [
     accent: "#d5959e",
     summary:
       "Illustration, packaging, and identity applications sequenced in a lighter, compact long-scroll presentation.",
+    detailZh: [
+      "“已经很糟糕了，不如先喝杯咖啡。” 这是摇 coffee 的情绪起点。",
+      "生活像一杯被摇晃又打翻的咖啡，工作会崩盘，计划会脱轨，情绪会宕机。既然已经这么糟，不如先停下来休息一下，把混乱变成一种能被接住的日常态度。",
+    ],
+    detailEn: [
+      "Shake Coffee starts from the idea that a bad day can pause for one good cup.",
+      "The identity turns daily chaos into a loose, resilient mood.",
+    ],
   },
 ];
 const projectGallerySpanPattern = [
@@ -1152,6 +1372,8 @@ function buildPosterArchiveGroups() {
         const orderedEntries = entries.sort((left, right) => left.variant - right.variant);
         const orderedImages = orderedEntries.map((entry) => entry.image);
         const variantCount = orderedImages.length;
+        const title = posterArchiveTitles[group.year]?.[serial] || `Series ${serial}`;
+        const cardTitle = posterArchiveCardTitles[group.year]?.[serial] || title;
 
         return {
           serial: String(serial),
@@ -1160,9 +1382,10 @@ function buildPosterArchiveGroups() {
           files: orderedEntries.map((entry) => entry.file),
           stack: orderedImages.slice(1),
           stackCount: variantCount,
-          title: `series ${serial}`,
+          title,
+          cardTitle,
           details: variantCount > 1 ? `${variantCount} posters / folded stack` : "single poster",
-          alt: `${group.year} poster series ${serial}`,
+          alt: `${title}, ${group.year}`,
           year: group.year,
         };
       });
@@ -1221,8 +1444,8 @@ function renderPosterGroup(group, groupIndex) {
                   }
                 </div>
                 <div class="poster-card-copy">
-                  <strong>${poster.serial}</strong>
-                  <p>${poster.title}, ${group.year}</p>
+                  <strong>${poster.cardTitle}</strong>
+                  <p>${group.year}</p>
                   <span>${poster.details}</span>
                 </div>
               </article>
@@ -2041,6 +2264,22 @@ function escapeHtml(value) {
   );
 }
 
+function renderProjectCopyCard(paragraphs) {
+  if (!Array.isArray(paragraphs) || !paragraphs.length) return "";
+
+  const copyMarkup = paragraphs
+    .filter(Boolean)
+    .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
+    .join("");
+
+  return `
+    <div class="project-copy-card">
+      <span>Project Overview</span>
+      ${copyMarkup}
+    </div>
+  `;
+}
+
 function getDecodedFileName(source) {
   const rawName = source.split("/").pop() || source;
 
@@ -2617,6 +2856,8 @@ function renderProjectPage() {
     projectCaseSource[(currentIndex + 1) % projectCaseSource.length];
   const project = { ...baseProject, ...archiveProject };
   const subtitleMarkup = project.subtitle ? `<small>${escapeHtml(project.subtitle)}</small>` : "";
+  const detailZhMarkup = renderProjectCopyCard(project.detailZh);
+  const detailEnMarkup = renderProjectCopyCard(project.detailEn);
 
   activeProjectCase = project;
   document.title = `LIULIAN ${project.title}`;
@@ -2650,6 +2891,8 @@ function renderProjectPage() {
             <p>LIULIAN Portfolio</p>
           </div>
         </div>
+        ${detailZhMarkup ? `<div class="project-case-overview-copy">${detailZhMarkup}</div>` : ""}
+        ${detailEnMarkup ? `<div class="project-case-overview-note">${detailEnMarkup}</div>` : ""}
       </section>
 
       <figure
