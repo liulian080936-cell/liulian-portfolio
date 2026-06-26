@@ -71,6 +71,17 @@
 
     <header class="site-header">
       <a class="brand" href="./index.html">LIULIAN <span>by Design</span></a>
+      <button
+        class="about-trigger"
+        id="aboutTrigger"
+        type="button"
+        aria-haspopup="dialog"
+        aria-controls="aboutDrawer"
+        aria-expanded="false"
+        data-scramble-skip="true"
+      >
+        <span>About</span>
+      </button>
       <nav class="site-nav" aria-label="主导航">
         <button
           class="site-nav-button project-browser-trigger"
@@ -406,6 +417,98 @@
         </div>
       </footer>
     </main>
+
+    <div class="about-drawer-backdrop" id="aboutDrawerBackdrop" hidden></div>
+    <aside
+      class="about-drawer"
+      id="aboutDrawer"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="aboutDrawerTitle"
+      aria-hidden="true"
+      data-scramble-skip="true"
+      hidden
+    >
+      <div class="about-drawer-shell">
+        <section class="about-drawer-copy">
+          <div class="about-drawer-heading">
+            <span class="about-drawer-kicker">About / 關於</span>
+            <button class="about-drawer-close" id="aboutDrawerClose" type="button" aria-label="关闭 About">
+              Close <span aria-hidden="true">×</span>
+            </button>
+          </div>
+
+          <div class="about-drawer-intro">
+            <h2 id="aboutDrawerTitle">榴莲設計｜LIULIAN by Design</h2>
+
+            <div class="about-language-block about-language-block-cn" lang="zh-Hant">
+              <p>黄永涛<br />平面設計師<br />2001，現居深圳</p>
+              <p>一颗设计师</p>
+              <p>
+                專注於平面設計、專輯、字體和插畫設計<br />
+                擅長運用圖形感觀感受來體現視覺效果<br />
+                致力於在設計與商業之間取得平衡<br />
+                喜歡嘗試各種不同的設計風格<br />
+                作品風格多元且充滿實驗性
+              </p>
+            </div>
+          </div>
+
+          <div class="about-language-block about-language-block-en" lang="en">
+            <p>Huang Yongtao</p>
+            <p>
+              A Graphic Designer (2001)<br />
+              Based in Shenzhen, China
+            </p>
+            <p>A Designer at Heart</p>
+            <p>
+              Specialized in graphic design, album artwork, typography, and illustration.<br />
+              Uses graphic language and sensory experience to create visual impact.<br />
+              Committed to balancing design with commercial purpose.<br />
+              Enjoys experimenting with a wide range of design styles.<br />
+              The work is diverse and distinctly experimental.
+            </p>
+          </div>
+        </section>
+
+        <section class="about-drawer-gallery" aria-label="Selected project images">
+          <div class="about-gallery-column">
+            <figure class="about-gallery-item" style="--about-index: 0">
+              <img src="./assets/projects/throbbing/15.webp" alt="Throbbing 服饰项目视觉" loading="lazy" decoding="async" />
+            </figure>
+            <figure class="about-gallery-item" style="--about-index: 2">
+              <img src="./assets/projects/shake-coffee/1.webp" alt="摇 coffee 项目视觉" loading="lazy" decoding="async" />
+            </figure>
+            <figure class="about-gallery-item" style="--about-index: 4">
+              <img src="./assets/projects/youth-tour/13.webp" alt="少年游项目视觉" loading="lazy" decoding="async" />
+            </figure>
+            <figure class="about-gallery-item" style="--about-index: 6">
+              <img src="./assets/projects/fechoes-2024/6.webp" alt="FECHOES 2024 音乐节项目视觉" loading="lazy" decoding="async" />
+            </figure>
+          </div>
+
+          <div class="about-gallery-column">
+            <figure class="about-gallery-item" style="--about-index: 1">
+              <img src="./assets/projects/nomokids/0.webp" alt="NOMOKIDS 项目视觉" loading="lazy" decoding="async" />
+            </figure>
+            <figure class="about-gallery-item" style="--about-index: 3">
+              <img src="./assets/projects/newlife/18.webp" alt="新生活新公式项目视觉" loading="lazy" decoding="async" />
+            </figure>
+            <figure class="about-gallery-item" style="--about-index: 5">
+              <img src="./assets/projects/alonewild/18.webp" alt="在野行 ALONEWILD 项目视觉" loading="lazy" decoding="async" />
+            </figure>
+            <figure class="about-gallery-item" style="--about-index: 7">
+              <img src="./assets/projects/lumos-nyxel/10.webp" alt="Lumos Nyxel 智能骑行头盔项目视觉" loading="lazy" decoding="async" />
+            </figure>
+          </div>
+
+          <p class="about-gallery-caption">
+            Selected works<br />
+            2022 — 2026
+          </p>
+        </section>
+      </div>
+    </aside>
 
     <div class="project-browser-backdrop" id="projectBrowserBackdrop" hidden></div>
     <aside

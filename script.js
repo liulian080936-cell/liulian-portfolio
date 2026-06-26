@@ -2391,6 +2391,11 @@ function initProjectBrowserDrawer() {
     window.clearTimeout(closeTimer);
     lastActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : trigger;
 
+    const aboutTrigger = document.querySelector("#aboutTrigger");
+    if (aboutTrigger?.getAttribute("aria-expanded") === "true") {
+      aboutTrigger.click();
+    }
+
     if (drawer.hidden) {
       drawer.hidden = false;
       backdrop.hidden = false;
@@ -2445,6 +2450,87 @@ function initProjectBrowserDrawer() {
   window.addEventListener("keydown", (event) => {
     if (drawer.hidden) return;
     if (event.key !== "Escape") return;
+    closeDrawer();
+  });
+}
+
+function initAboutDrawer() {
+  const trigger = document.querySelector("#aboutTrigger");
+  const drawer = document.querySelector("#aboutDrawer");
+  const backdrop = document.querySelector("#aboutDrawerBackdrop");
+  const closeButton = document.querySelector("#aboutDrawerClose");
+
+  if (!trigger || !drawer || !backdrop || !closeButton) {
+    return;
+  }
+
+  let closeTimer = 0;
+  let settleTimer = 0;
+  let lastActiveElement = null;
+
+  const openDrawer = () => {
+    window.clearTimeout(closeTimer);
+    window.clearTimeout(settleTimer);
+    lastActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : trigger;
+
+    const projectTrigger = document.querySelector("#projectBrowserTrigger");
+    if (projectTrigger?.getAttribute("aria-expanded") === "true") {
+      projectTrigger.click();
+    }
+
+    if (drawer.hidden) {
+      drawer.hidden = false;
+      backdrop.hidden = false;
+      drawer.getBoundingClientRect();
+    }
+
+    drawer.classList.add("is-open");
+    drawer.classList.remove("is-settled");
+    backdrop.classList.add("is-open");
+    drawer.setAttribute("aria-hidden", "false");
+    trigger.setAttribute("aria-expanded", "true");
+    document.body.classList.add("about-drawer-open");
+
+    settleTimer = window.setTimeout(() => {
+      drawer.classList.add("is-settled");
+    }, 1800);
+
+    closeButton.focus({ preventScroll: true });
+  };
+
+  const closeDrawer = () => {
+    if (drawer.hidden) return;
+
+    window.clearTimeout(settleTimer);
+    drawer.classList.remove("is-settled");
+    drawer.classList.remove("is-open");
+    backdrop.classList.remove("is-open");
+    drawer.setAttribute("aria-hidden", "true");
+    trigger.setAttribute("aria-expanded", "false");
+    document.body.classList.remove("about-drawer-open");
+
+    window.clearTimeout(closeTimer);
+    closeTimer = window.setTimeout(() => {
+      drawer.hidden = true;
+      backdrop.hidden = true;
+      lastActiveElement?.focus?.({ preventScroll: true });
+    }, 720);
+  };
+
+  trigger.addEventListener("click", () => {
+    if (drawer.hidden) {
+      openDrawer();
+      return;
+    }
+
+    closeDrawer();
+  });
+
+  closeButton.addEventListener("click", closeDrawer);
+  backdrop.addEventListener("click", closeDrawer);
+
+  window.addEventListener("keydown", (event) => {
+    if (drawer.hidden || event.key !== "Escape") return;
     closeDrawer();
   });
 }
@@ -3200,6 +3286,7 @@ function initPage() {
     initHomeLoadingScreen();
     initHomeProjectMediaRatios();
     initFooterLinkPreviews();
+    initAboutDrawer();
     initProjectBrowserDrawer();
     scheduleNonCriticalTask(() => {
       initGlobalScrambledText();
