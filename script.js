@@ -1634,13 +1634,7 @@ function initPosterDrawer() {
 
   const syncImageFacts = () => {
     if (!activePoster) return;
-
-    if (image.naturalWidth && image.naturalHeight) {
-      size.textContent = `offset, ${image.naturalWidth} x ${image.naturalHeight} px`;
-      return;
-    }
-
-    size.textContent = "offset, loading image size";
+    size.textContent = "";
   };
 
   const renderMinimapList = () => {
@@ -1725,31 +1719,21 @@ function initPosterDrawer() {
     resetStagePosition();
     image.src = activeItem.src;
     image.alt = buildImageAlt(activePoster, activeImageIndex);
-    counter.textContent = `${String(activeFlatIndex + 1).padStart(2, "0")} / ${String(
-      posterArchiveFlatList.length,
-    ).padStart(2, "0")}`;
-    serial.textContent = activePoster.serial === "special" ? "special poster" : `series ${activePoster.serial}`;
-    title.textContent = `"${activePoster.title}", ${activePoster.year}`;
-    location.textContent = `selected archive, ${activePoster.year}`;
-    category.textContent =
-      activePoster.images.length > 1
-        ? `variant ${activeImageIndex + 1} of ${activePoster.images.length}`
-        : "single poster";
-    details.textContent = activePoster.details;
-    description.textContent =
-      activePoster.images.length > 1
-        ? `A series of ${activePoster.images.length} posters selected from the ${activePoster.year} archive. Use the condensed stack to compare alternate versions of the same poster.`
-        : `A single poster selected from the ${activePoster.year} archive.`;
-    credits.textContent = `archive: LIULIAN poster archive, current file: ${activeItem.fileName}, viewing: ${activeImageIndex + 1} of ${activePoster.images.length}.`;
-    awards.textContent =
-      activePoster.images.length > 1
-        ? `.${activePoster.images.length} poster variants in this folded stack`
-        : ". single poster from the archive";
-    author.textContent = "liulian archive";
-    collection.textContent = getCollectionLabel(activePoster.year);
-    collectionTag.textContent = getCollectionToken(activePoster.year);
-    footer.textContent = "© 2026, LIULIAN poster archive. all rights reserved.";
-    size.textContent = "offset, loading image size";
+    counter.textContent = "";
+    serial.textContent = "poster archive";
+    title.textContent = `"${activePoster.title}"`;
+    size.textContent = "";
+    location.textContent = activePoster.year;
+    category.textContent = activePoster.images.length > 1 ? "variant set" : "single poster";
+    details.textContent = "";
+    description.textContent = "";
+    credits.textContent = "";
+    awards.textContent = "";
+    author.textContent = "liulian";
+    collection.textContent = "poster archive";
+    collectionTag.textContent = "";
+    collectionTag.hidden = true;
+    footer.textContent = "";
 
     renderMinimapList();
     requestAnimationFrame(() => {
@@ -2291,12 +2275,44 @@ function escapeHtml(value) {
   );
 }
 
-function renderProjectCopyCard(paragraphs) {
+function stripDisplayNumbers(value, preservedPhrases = []) {
+  const placeholders = [];
+  let text = String(value);
+
+  preservedPhrases
+    .filter(Boolean)
+    .sort((a, b) => String(b).length - String(a).length)
+    .forEach((phrase) => {
+      const token = `__PRESERVED_TEXT_${"X".repeat(placeholders.length + 1)}__`;
+      placeholders.push({ token, phrase: String(phrase) });
+      text = text.split(String(phrase)).join(token);
+    });
+
+  text = text
+    .replace(/[0-9０-９]+/g, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.;:!?，。；：！？])/g, "$1")
+    .replace(/([（(])\s+/g, "$1")
+    .replace(/\s+([）)])/g, "$1")
+    .trim();
+
+  placeholders.forEach(({ token, phrase }) => {
+    text = text.split(token).join(phrase);
+  });
+
+  return text;
+}
+
+function escapeDisplayText(value, preservedPhrases = []) {
+  return escapeHtml(stripDisplayNumbers(value, preservedPhrases));
+}
+
+function renderProjectCopyCard(paragraphs, preservedPhrases = []) {
   if (!Array.isArray(paragraphs) || !paragraphs.length) return "";
 
   const copyMarkup = paragraphs
     .filter(Boolean)
-    .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
+    .map((paragraph) => `<p>${escapeDisplayText(paragraph, preservedPhrases)}</p>`)
     .join("");
 
   return `
@@ -2551,17 +2567,17 @@ function buildProjectBrowserTags(project, imageCount) {
   const tags = [];
 
   if (project.subtitle) {
-    tags.push(project.subtitle);
+    tags.push(stripDisplayNumbers(project.subtitle));
   }
 
   project.discipline
     .split("/")
     .map((part) => part.trim())
     .filter(Boolean)
-    .forEach((tag) => tags.push(tag));
+    .forEach((tag) => tags.push(stripDisplayNumbers(tag)));
 
   if (imageCount) {
-    tags.push(`${imageCount} frames`);
+    tags.push("frames");
   }
 
   return tags.filter((tag, index) => tags.indexOf(tag) === index).slice(0, 4);
@@ -2595,6 +2611,7 @@ function buildProjectBrowserCatalog() {
 }
 
 function renderProjectBrowserCard(project) {
+  const displayTitle = project.title;
   const tagsMarkup = project.tags
     .map((tag) => `<span class="project-browser-card-tag">${escapeHtml(tag)}</span>`)
     .join("");
@@ -2604,16 +2621,16 @@ function renderProjectBrowserCard(project) {
       class="project-browser-card${project.isContain ? " is-contain" : ""}"
       data-variant="${project.variant}"
       href="./project.html?slug=${encodeURIComponent(project.slug)}"
-      aria-label="查看 ${escapeHtml(project.title)} 项目详情"
+      aria-label="查看 ${escapeHtml(displayTitle)} 项目详情"
       style="--project-accent: ${project.accent};"
     >
       <div class="project-browser-card-surface">
-        <span class="project-browser-card-label">${escapeHtml(project.number)} / ${escapeHtml(project.title)}</span>
+        <span class="project-browser-card-label">${escapeHtml(displayTitle)}</span>
         <span class="project-browser-card-arrow" aria-hidden="true">↗</span>
         <img
           class="project-browser-card-image"
           src="${project.previewImage}"
-          alt="${escapeHtml(project.title)} preview"
+          alt="${escapeHtml(displayTitle)} preview"
           loading="lazy"
           decoding="async"
         />
@@ -2749,8 +2766,8 @@ function initProjectBrowserDrawer() {
   }
 
   grid.innerHTML = catalog.map((project) => renderProjectBrowserCard(project)).join("");
-  count.textContent = `${catalog.length} Projects`;
-  note.textContent = `${catalog.length} projects collected in one side preview. Click any card to open the full case study.`;
+  count.textContent = "Projects";
+  note.textContent = "Projects collected in one side preview. Click any card to open the full case study.";
 
   let closeTimer = 0;
   let lastActiveElement = null;
@@ -2831,7 +2848,6 @@ function buildProjectGallery(project) {
         ? 12
         : projectGallerySpanPattern[index % projectGallerySpanPattern.length];
       const imageIndex = index + 1;
-      const frame = buildProjectFrameLabel(imageIndex);
 
       return `
         <figure
@@ -2839,13 +2855,12 @@ function buildProjectGallery(project) {
           tabindex="0"
           role="button"
           aria-haspopup="dialog"
-          aria-label="Open ${escapeHtml(project.title)} frame ${frame}"
+          aria-label="Open ${escapeHtml(project.title)} project image"
           data-project-image-index="${imageIndex}"
         >
           <div class="project-gallery-media">
-            <img class="deferred-image" data-src="${src}" alt="${escapeHtml(project.title)} frame ${frame}" loading="lazy" decoding="async" />
+            <img class="deferred-image" data-src="${src}" alt="${escapeHtml(project.title)} project image" loading="lazy" decoding="async" />
           </div>
-          <figcaption>${frame}</figcaption>
         </figure>
       `;
     })
@@ -2882,9 +2897,10 @@ function renderProjectPage() {
   const nextProject =
     projectCaseSource[(currentIndex + 1) % projectCaseSource.length];
   const project = { ...baseProject, ...archiveProject };
-  const subtitleMarkup = project.subtitle ? `<small>${escapeHtml(project.subtitle)}</small>` : "";
-  const detailZhMarkup = renderProjectCopyCard(project.detailZh);
-  const detailEnMarkup = renderProjectCopyCard(project.detailEn);
+  const preservedProjectText = [project.title];
+  const subtitleMarkup = project.subtitle ? `<small>${escapeDisplayText(project.subtitle)}</small>` : "";
+  const detailZhMarkup = renderProjectCopyCard(project.detailZh, preservedProjectText);
+  const detailEnMarkup = renderProjectCopyCard(project.detailEn, preservedProjectText);
 
   activeProjectCase = project;
   document.title = `LIULIAN ${project.title}`;
@@ -2898,8 +2914,7 @@ function renderProjectPage() {
           <span>Selected Case Study</span>
           <a class="project-case-back" href="./index.html">Back to Works</a>
         </div>
-        <div class="project-case-heading">
-          <span class="project-case-number">${escapeHtml(project.number)}</span>
+        <div class="project-case-heading is-numberless">
           <div class="project-case-title-wrap">
             <h1>${escapeHtml(project.title)}${subtitleMarkup}</h1>
           </div>
@@ -2911,7 +2926,7 @@ function renderProjectPage() {
           </div>
           <div class="project-case-meta-block">
             <span>Frames</span>
-            <p>${escapeHtml(project.imageCount)} selected archive images</p>
+            <p>selected archive images</p>
           </div>
           <div class="project-case-meta-block">
             <span>Author</span>
@@ -2927,7 +2942,7 @@ function renderProjectPage() {
         tabindex="0"
         role="button"
         aria-haspopup="dialog"
-        aria-label="Open ${escapeHtml(project.title)} frame 01"
+        aria-label="Open ${escapeHtml(project.title)} project image"
         data-project-image-index="0"
       >
         <div class="project-case-lead-media">
@@ -3046,12 +3061,7 @@ function initProjectDrawer() {
   };
 
   const syncImageFacts = () => {
-    if (image.naturalWidth && image.naturalHeight) {
-      size.textContent = `offset, ${image.naturalWidth} x ${image.naturalHeight} px`;
-      return;
-    }
-
-    size.textContent = "offset, loading image size";
+    size.textContent = "";
   };
 
   const renderMinimapList = () => {
@@ -3062,7 +3072,7 @@ function initProjectDrawer() {
             class="project-drawer-mini${item.index === activeIndex ? " is-active" : ""}"
             type="button"
             data-project-minimap-index="${item.index}"
-            aria-label="跳转到第 ${item.index + 1} 张图片"
+            aria-label="跳转到项目图片"
           >
             <img class="deferred-image" data-src="${item.src}" alt="" loading="lazy" decoding="async" aria-hidden="true" />
             <span class="project-drawer-mini-viewport" aria-hidden="true"></span>
@@ -3125,21 +3135,22 @@ function initProjectDrawer() {
 
     resetStagePosition();
     image.src = item.src;
-    image.alt = `${project.title} frame ${item.frame}`;
-    counter.textContent = `${item.frame} / ${String(projectItems.length).padStart(2, "0")}`;
-    serial.textContent = `project ${project.number}`;
-    title.textContent = `"${project.title}", frame ${item.frame}`;
-    location.textContent = `selected work, ${project.title.toLowerCase()}`;
-    category.textContent = `image ${item.frame} of ${String(projectItems.length).padStart(2, "0")}`;
-    details.textContent = "project archive frame";
-    description.textContent = project.discipline;
-    credits.textContent = `file: ${item.fileName}`;
-    awards.textContent = `.${projectItems.length} images in this project archive`;
+    image.alt = `${project.title} project image`;
+    counter.textContent = "";
+    serial.textContent = "project archive";
+    title.textContent = `"${project.title}"`;
+    size.textContent = "";
+    location.textContent = stripDisplayNumbers(project.discipline, [project.title]);
+    category.textContent = "selected image";
+    details.textContent = "";
+    description.textContent = "";
+    credits.textContent = "";
+    awards.textContent = "";
     author.textContent = "liulian";
     collection.textContent = project.title;
-    collectionTag.textContent = project.number;
-    footer.textContent = "© 2026, LIULIAN project archive. all rights reserved.";
-    size.textContent = "offset, loading image size";
+    collectionTag.textContent = "";
+    collectionTag.hidden = true;
+    footer.textContent = "";
     if (minimapRendered) {
       requestAnimationFrame(() => {
         requestAnimationFrame(syncMinimapState);
