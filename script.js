@@ -420,8 +420,26 @@ const projectCaseSource = [
     ],
   },
   {
-    slug: "ecoflow",
+    slug: "cipopo",
     number: "12",
+    title: "CIPOPO",
+    subtitle: "",
+    discipline: "Smart Companion / Brand Identity",
+    accent: "#bac90b",
+    summary:
+      "A smart companion brand presented through sleek product imagery, restrained interfaces, and a calm emotional-tech atmosphere.",
+    detailZh: [
+      "CIPOPO 是乐享科技旗下的智能消费品牌，聚焦桌面机器人等新一代具身智能产品，打造轻量化、情绪友好、具备感知与反馈能力的智能陪伴载体。",
+      "它不同于以效率为导向的传统科技产品，更关注人与智能之间的关系质量，让智能以轻松、克制而不过度打扰的方式融入生活，让陪伴自然发生。",
+    ],
+    detailEn: [
+      "CIPOPO is a smart consumer brand focused on desktop robots and other next-generation embodied devices designed for gentle companionship.",
+      "Rather than foregrounding efficiency alone, it builds a calmer relationship between people and intelligence through light, emotionally aware interaction.",
+    ],
+  },
+  {
+    slug: "ecoflow",
+    number: "13",
     title: "ECOFLOW",
     subtitle: "项目",
     discipline: "Campaign Visual / Launch Material",
@@ -439,7 +457,7 @@ const projectCaseSource = [
   },
   {
     slug: "double8-coffee",
-    number: "13",
+    number: "14",
     title: "DOUBLE 8 COFFEE",
     subtitle: "",
     discipline: "Coffee Branding / Visual Identity",
@@ -457,7 +475,7 @@ const projectCaseSource = [
   },
   {
     slug: "fivebook",
-    number: "14",
+    number: "15",
     title: "FIVEBOOK",
     subtitle: "五本书屋",
     discipline: "Bookstore Brand / Space Graphics",
@@ -475,7 +493,7 @@ const projectCaseSource = [
   },
   {
     slug: "flow-in",
-    number: "15",
+    number: "16",
     title: "FLOW IN",
     subtitle: "",
     discipline: "Lifestyle Space / Visual Identity",
@@ -493,7 +511,7 @@ const projectCaseSource = [
   },
   {
     slug: "shake-coffee",
-    number: "16",
+    number: "17",
     title: "SHAKE COFFEE",
     subtitle: "摇coffee",
     discipline: "Illustration Brand / Coffee System",
@@ -548,6 +566,7 @@ const footerPreviewSource = {
       "./assets/projects/fivebook/1.webp",
       "./assets/projects/double8-coffee/1.webp",
       "./assets/projects/zero-m1/1.webp",
+      "./assets/projects/cipopo/1.webp",
       "./assets/projects/ecoflow/12.webp",
       "./assets/projects/nomokids/0.webp",
     ],
@@ -578,6 +597,7 @@ const projectBrowserPreviewOverrides = {
   alonewild: "./assets/home/alonewild.webp",
   supernova: "./assets/home/supernova.webp",
   "zero-m1": "./assets/home/zero-m1.webp",
+  cipopo: "./assets/projects/cipopo/1.webp",
   ecoflow: "./assets/home/ecoflow.webp",
   "double8-coffee": "./assets/home/double8-cover.jpg",
   fivebook: "./assets/home/fivebook.webp",

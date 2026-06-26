@@ -75,6 +75,32 @@ window.__PROJECT_MANIFEST__ = [
     ]
   },
   {
+    "slug": "cipopo",
+    "imageCount": 20,
+    "images": [
+      "./assets/projects/cipopo/1.webp",
+      "./assets/projects/cipopo/2.webp",
+      "./assets/projects/cipopo/3.webp",
+      "./assets/projects/cipopo/4.webp",
+      "./assets/projects/cipopo/5.webp",
+      "./assets/projects/cipopo/6.webp",
+      "./assets/projects/cipopo/7.webp",
+      "./assets/projects/cipopo/8.webp",
+      "./assets/projects/cipopo/9.webp",
+      "./assets/projects/cipopo/10.webp",
+      "./assets/projects/cipopo/11.webp",
+      "./assets/projects/cipopo/12.webp",
+      "./assets/projects/cipopo/13.webp",
+      "./assets/projects/cipopo/14.webp",
+      "./assets/projects/cipopo/15.webp",
+      "./assets/projects/cipopo/16.webp",
+      "./assets/projects/cipopo/17.webp",
+      "./assets/projects/cipopo/18.webp",
+      "./assets/projects/cipopo/19.webp",
+      "./assets/projects/cipopo/20.webp"
+    ]
+  },
+  {
     "slug": "ecoflow",
     "imageCount": 9,
     "images": [
