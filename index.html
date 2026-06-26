@@ -73,6 +73,16 @@
       <a class="brand" href="./index.html">LIULIAN <span>by Design</span></a>
       <nav class="site-nav" aria-label="主导航">
         <button
+          class="site-nav-button about-drawer-trigger"
+          id="aboutDrawerTrigger"
+          type="button"
+          aria-haspopup="dialog"
+          aria-controls="aboutDrawer"
+          aria-expanded="false"
+        >
+          About
+        </button>
+        <button
           class="site-nav-button project-browser-trigger"
           id="projectBrowserTrigger"
           type="button"
@@ -406,6 +416,92 @@
         </div>
       </footer>
     </main>
+
+    <aside
+      class="about-drawer"
+      id="aboutDrawer"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="aboutDrawerTitle"
+      aria-hidden="true"
+      data-scramble-skip="true"
+      hidden
+    >
+      <div class="about-drawer-shell">
+        <section class="about-drawer-copy-pane" aria-label="About 介绍">
+          <div class="about-drawer-copy-head">
+            <span class="about-drawer-breadcrumb">ABOUT / 關於</span>
+            <button class="about-drawer-close" id="aboutDrawerClose" type="button" aria-label="关闭 About 抽屉">
+              CLOSE <span aria-hidden="true">×</span>
+            </button>
+          </div>
+
+          <div class="about-drawer-copy-body">
+            <div class="about-drawer-copy-block about-drawer-copy-block-cn">
+              <h2 id="aboutDrawerTitle">榴蓮設計 | LIULIAN by Design</h2>
+              <p>
+                黃永濤<br />
+                平面設計師<br />
+                2001，現居深圳
+              </p>
+              <p>一顆設計師</p>
+              <p>
+                專注於平面設計、專輯、字體和插畫設計<br />
+                擅長運用圖形感觀或受來體現視覺效果<br />
+                致力於在設計與商業之間取得平衡<br />
+                喜歡嘗試各種不同的設計風格<br />
+                作品風格多元且充滿實驗性
+              </p>
+            </div>
+
+            <div class="about-drawer-copy-block about-drawer-copy-block-en">
+              <p class="about-drawer-copy-name">Huang Yongtao</p>
+              <p>
+                A Graphic Designer (2001)<br />
+                Based in Shenzhen, China
+              </p>
+              <p>A Designer at Heart</p>
+              <p>
+                Specialized in graphic design, album artwork, typography, and illustration.<br />
+                Uses graphic language and sensory experience to create visual impact.<br />
+                Committed to balancing design with commercial purpose.<br />
+                Enjoys experimenting with a wide range of design styles.<br />
+                The work is diverse and distinctly experimental.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section class="about-drawer-gallery-pane" aria-label="About 项目拼贴">
+          <div class="about-drawer-gallery">
+            <figure class="about-drawer-card about-drawer-card-primary">
+              <img src="./assets/about/throbbing-26.jpg" alt="Throbbing project billboard installation" decoding="async" />
+            </figure>
+            <figure class="about-drawer-card about-drawer-card-secondary">
+              <img src="./assets/about/nomokids-0.png" alt="NOMOKIDS child portrait" decoding="async" />
+            </figure>
+            <figure class="about-drawer-card about-drawer-card-tertiary">
+              <img src="./assets/about/shake-coffee-1.webp" alt="Shake Coffee storefront" decoding="async" />
+            </figure>
+            <figure class="about-drawer-card about-drawer-card-quaternary">
+              <img src="./assets/about/newlife-3.jpg" alt="New Life fitness visual" decoding="async" />
+            </figure>
+            <figure class="about-drawer-card about-drawer-card-quinary">
+              <img src="./assets/about/smoo-29.jpg" alt="SMOO MARKET storefront" decoding="async" />
+            </figure>
+            <figure class="about-drawer-card about-drawer-card-senary">
+              <img src="./assets/about/fechoes-14.jpg" alt="FECHOES festival poster installation" decoding="async" />
+            </figure>
+            <figure class="about-drawer-card about-drawer-card-septenary">
+              <img src="./assets/about/lumos-10.png" alt="Lumos helmet campaign frame" decoding="async" />
+            </figure>
+            <figure class="about-drawer-card about-drawer-card-octonary">
+              <img src="./assets/about/fivebook-14.jpg" alt="Fivebook poster display" decoding="async" />
+            </figure>
+          </div>
+        </section>
+      </div>
+    </aside>
 
     <div class="project-browser-backdrop" id="projectBrowserBackdrop" hidden></div>
     <aside

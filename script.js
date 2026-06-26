@@ -2359,6 +2359,108 @@ function renderProjectBrowserCard(project) {
   `;
 }
 
+function initAboutDrawer() {
+  const trigger = document.querySelector("#aboutDrawerTrigger");
+  const drawer = document.querySelector("#aboutDrawer");
+  const closeButton = document.querySelector("#aboutDrawerClose");
+  const copyPane = drawer?.querySelector(".about-drawer-copy-pane");
+  const galleryPane = drawer?.querySelector(".about-drawer-gallery-pane");
+
+  if (!trigger || !drawer || !closeButton || !copyPane || !galleryPane) {
+    return;
+  }
+
+  let closeTimer = 0;
+  let lastActiveElement = null;
+
+  const openDrawer = ({ skipHash = false, focusClose = true } = {}) => {
+    window.clearTimeout(closeTimer);
+    lastActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : trigger;
+
+    if (drawer.hidden) {
+      drawer.hidden = false;
+    }
+
+    drawer.scrollTop = 0;
+    copyPane.scrollTop = 0;
+    galleryPane.scrollTop = 0;
+
+    window.requestAnimationFrame(() => {
+      drawer.classList.add("is-open");
+      drawer.setAttribute("aria-hidden", "false");
+      trigger.setAttribute("aria-expanded", "true");
+      trigger.classList.add("is-active");
+      document.body.classList.add("about-drawer-open");
+    });
+
+    if (!skipHash && window.location.hash !== "#about") {
+      window.history.pushState(null, "", "#about");
+    }
+
+    if (focusClose) {
+      closeButton.focus({ preventScroll: true });
+    }
+  };
+
+  const closeDrawer = ({ skipHash = false, restoreFocus = true } = {}) => {
+    if (drawer.hidden) return;
+
+    drawer.classList.remove("is-open");
+    drawer.setAttribute("aria-hidden", "true");
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.classList.remove("is-active");
+    document.body.classList.remove("about-drawer-open");
+
+    if (!skipHash && window.location.hash === "#about") {
+      const cleanUrl = `${window.location.pathname}${window.location.search}`;
+      window.history.replaceState(null, "", cleanUrl);
+    }
+
+    window.clearTimeout(closeTimer);
+    closeTimer = window.setTimeout(() => {
+      drawer.hidden = true;
+
+      if (restoreFocus) {
+        lastActiveElement?.focus?.({ preventScroll: true });
+      }
+    }, 560);
+  };
+
+  const syncDrawerFromHash = () => {
+    if (window.location.hash === "#about") {
+      openDrawer({ skipHash: true, focusClose: false });
+      return;
+    }
+
+    closeDrawer({ skipHash: true, restoreFocus: false });
+  };
+
+  trigger.addEventListener("click", () => {
+    if (drawer.hidden) {
+      openDrawer();
+      return;
+    }
+
+    closeDrawer();
+  });
+
+  closeButton.addEventListener("click", () => {
+    closeDrawer();
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (drawer.hidden) return;
+    if (event.key !== "Escape") return;
+    closeDrawer();
+  });
+
+  window.addEventListener("hashchange", syncDrawerFromHash);
+
+  if (window.location.hash === "#about") {
+    openDrawer({ skipHash: true, focusClose: false });
+  }
+}
+
 function initProjectBrowserDrawer() {
   const trigger = document.querySelector("#projectBrowserTrigger");
   const drawer = document.querySelector("#projectBrowserDrawer");
@@ -3200,6 +3302,7 @@ function initPage() {
     initHomeLoadingScreen();
     initHomeProjectMediaRatios();
     initFooterLinkPreviews();
+    initAboutDrawer();
     initProjectBrowserDrawer();
     scheduleNonCriticalTask(() => {
       initGlobalScrambledText();
