@@ -124,7 +124,6 @@ html[data-home-loader="skip"] .home-loader {
   aspect-ratio: 1 / 1;
 }
 
-.home-loader-poster,
 .home-loader-video {
   position: absolute;
   inset: 0;
@@ -132,24 +131,6 @@ html[data-home-loader="skip"] .home-loader {
   height: 100%;
   object-fit: contain;
   display: block;
-}
-
-.home-loader-poster {
-  opacity: 1;
-  transition: opacity 0.18s ease;
-}
-
-.home-loader-video {
-  opacity: 0;
-  transition: opacity 0.18s ease;
-}
-
-.home-loader-media.is-video-ready .home-loader-poster {
-  opacity: 0;
-}
-
-.home-loader-media.is-video-ready .home-loader-video {
-  opacity: 1;
 }
 
 .home-loader-progress {

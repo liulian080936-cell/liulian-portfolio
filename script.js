@@ -689,7 +689,6 @@ function createCountUpFormatter(from, to, separator = "") {
 
 function initHomeLoadingScreen() {
   const loader = document.getElementById("homeLoadingScreen");
-  const media = document.getElementById("homeLoadingMedia");
   const value = document.getElementById("homeLoadingValue");
   const label = document.getElementById("homeLoadingLabel");
   const video = document.getElementById("homeLoadingVideo");
@@ -770,13 +769,6 @@ function initHomeLoadingScreen() {
   };
 
   const areAssetsReady = () => loadedAssetCount >= trackedAssetCount;
-  const markVideoPlaybackObserved = () => {
-    if (videoPlaybackObserved) return;
-
-    videoPlaybackObserved = true;
-    media?.classList.add("is-video-ready");
-  };
-
   const getProgressCap = () => (finishRequested ? 100 : preCompleteCap);
   const applyAssetDrivenProgress = (cap = getProgressCap()) => {
     const nextProgress = Math.min(getAssetDrivenProgress(), cap);
@@ -809,7 +801,7 @@ function initHomeLoadingScreen() {
 
       if (videoTimelineProgress !== null) {
         if (videoTimelineProgress > 0.015) {
-          markVideoPlaybackObserved();
+          videoPlaybackObserved = true;
         }
 
         if (videoTimelineProgress >= videoCompletionThreshold) {
@@ -882,7 +874,7 @@ function initHomeLoadingScreen() {
       videoHandled = true;
 
       if (hasVideoFrames) {
-        markVideoPlaybackObserved();
+        videoPlaybackObserved = true;
       }
 
       if (!hasVideoFrames) {
@@ -926,7 +918,7 @@ function initHomeLoadingScreen() {
       const videoTimelineProgress = getVideoTimelineProgress();
       if (videoTimelineProgress !== null) {
         if (videoTimelineProgress > 0.015) {
-          markVideoPlaybackObserved();
+          videoPlaybackObserved = true;
         }
 
         if (videoTimelineProgress >= videoCompletionThreshold) {
@@ -969,7 +961,7 @@ function initHomeLoadingScreen() {
       video.addEventListener(
         "playing",
         () => {
-          markVideoPlaybackObserved();
+          videoPlaybackObserved = true;
           resolveVideoProgress(true);
         },
         { once: true },
