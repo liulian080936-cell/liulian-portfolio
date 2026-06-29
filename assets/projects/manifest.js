@@ -189,6 +189,19 @@ window.__PROJECT_MANIFEST__ = [
     ]
   },
   {
+    "slug": "to-see-is-to-believe",
+    "imageCount": 7,
+    "images": [
+      "./assets/projects/to-see-is-to-believe/1.jpg",
+      "./assets/projects/to-see-is-to-believe/2.jpg",
+      "./assets/projects/to-see-is-to-believe/3.jpg",
+      "./assets/projects/to-see-is-to-believe/4.jpg",
+      "./assets/projects/to-see-is-to-believe/5.jpg",
+      "./assets/projects/to-see-is-to-believe/6.jpg",
+      "./assets/projects/to-see-is-to-believe/7.jpg"
+    ]
+  },
+  {
     "slug": "fechoes-2024",
     "imageCount": 16,
     "images": [

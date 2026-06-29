@@ -1754,6 +1754,14 @@ body[data-page="project"] .project-case-heading.is-numberless {
   font-weight: var(--type-title-weight);
 }
 
+body[data-project-slug="to-see-is-to-believe"] .project-case-title-wrap h1 {
+  max-width: 14ch;
+}
+
+.project-case-title-line {
+  display: block;
+}
+
 .project-case-title-wrap h1 small {
   display: block;
   margin-top: 16px;

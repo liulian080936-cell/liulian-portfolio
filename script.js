@@ -292,6 +292,24 @@ const projectCaseSource = [
     ],
   },
   {
+    slug: "to-see-is-to-believe",
+    number: "17",
+    title: "TO SEE IS TO BELIEVE",
+    subtitle: "",
+    discipline: "Music Packaging / Visual System",
+    accent: "#9fb8c1",
+    summary:
+      "CD packaging, image texture, and fine typography arranged into a soft visual narrative.",
+    detailZh: [
+      "TO SEE IS TO BELIEVE 以 CD 包装、影像质感与细密排版构建一套带有朦胧记忆感的视觉叙事。",
+      "项目围绕透明材质、折页和光影图像展开，让实物载体保留介于观看与相信之间的距离。",
+    ],
+    detailEn: [
+      "TO SEE IS TO BELIEVE turns CD packaging, image texture, and fine typography into a soft visual narrative.",
+      "The system uses translucent materials, folded print, and blurred light to hold a distance between seeing and belief.",
+    ],
+  },
+  {
     slug: "fechoes-2024",
     number: "05",
     title: "FECHOES 2024",
@@ -565,6 +583,7 @@ const footerPreviewSource = {
       "./assets/projects/newlife/18.webp",
       "./assets/projects/fivebook/1.webp",
       "./assets/projects/double8-coffee/1.webp",
+      "./assets/projects/to-see-is-to-believe/1.jpg",
       "./assets/projects/zero-m1/1.webp",
       "./assets/projects/cipopo/1.webp",
       "./assets/projects/ecoflow/12.webp",
@@ -590,6 +609,7 @@ const projectBrowserPreviewOverrides = {
   "youth-tour": "./assets/home/youth-tour.webp",
   nomokids: "./assets/home/nomokids-cover.jpg",
   "smoo-market": "./assets/home/smoo-cover.jpg",
+  "to-see-is-to-believe": "./assets/projects/to-see-is-to-believe/1.jpg",
   "fechoes-2024": "./assets/projects/fechoes-2024/1.webp",
   "lumos-nyxel": "./assets/projects/lumos-nyxel/1.webp",
   newlife: "./assets/projects/newlife/18.webp",
@@ -2993,6 +3013,10 @@ function renderProjectPage() {
   const project = { ...baseProject, ...archiveProject };
   const preservedProjectText = [project.title];
   const subtitleMarkup = project.subtitle ? `<small>${escapeDisplayText(project.subtitle)}</small>` : "";
+  const titleMarkup = project.slug === "to-see-is-to-believe"
+    ? '<span class="project-case-title-line">TO SEE IS TO</span><span class="project-case-title-line">BELIEVE</span>'
+    : `${escapeHtml(project.title)}${subtitleMarkup}`;
+  const titleAttributes = project.slug === "to-see-is-to-believe" ? ' data-scramble-skip="true"' : "";
   const detailZhMarkup = renderProjectCopyCard(project.detailZh, preservedProjectText, {
     className: "project-copy-card-primary",
   });
@@ -3016,7 +3040,7 @@ function renderProjectPage() {
         </div>
         <div class="project-case-heading is-numberless">
           <div class="project-case-title-wrap">
-            <h1>${escapeHtml(project.title)}${subtitleMarkup}</h1>
+            <h1${titleAttributes}>${titleMarkup}</h1>
           </div>
         </div>
         <div class="project-case-meta">
