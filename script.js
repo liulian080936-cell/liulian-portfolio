@@ -709,9 +709,12 @@ function initHomeLoadingScreen() {
   const maxDuration = 7000;
   const preCompleteCap = prefersReducedMotion ? 95 : 97;
   const waitingForVideoCap = prefersReducedMotion ? 24 : 32;
-  const introProgressCapDuration = prefersReducedMotion ? 220 : 780;
-  const introProgressCap = prefersReducedMotion ? 18 : 22;
-  const regularDisplayRate = prefersReducedMotion ? 0.08 : 0.05;
+  const preVideoDisplayCap = prefersReducedMotion ? 5 : 4;
+  const preVideoGraceDuration = prefersReducedMotion ? 240 : 420;
+  const introFreezeDuration = prefersReducedMotion ? 160 : 240;
+  const introProgressCapDuration = prefersReducedMotion ? 520 : 1120;
+  const introProgressCap = prefersReducedMotion ? 16 : 18;
+  const regularDisplayRate = prefersReducedMotion ? 0.08 : 0.04;
   const finishDisplayRate = prefersReducedMotion ? 0.2 : 0.24;
   const completionHoldDuration = prefersReducedMotion ? 120 : 180;
   const exitDuration = 420;
@@ -738,6 +741,7 @@ function initHomeLoadingScreen() {
   let exitTriggered = false;
   let completionHoldStart = null;
   let lastAnimationTime = startTime;
+  let videoPlaybackObserved = !hasVideo;
   let videoSequenceComplete = !hasVideo;
 
   body.classList.add("is-home-loading");
@@ -796,6 +800,10 @@ function initHomeLoadingScreen() {
       const videoTimelineProgress = getVideoTimelineProgress();
 
       if (videoTimelineProgress !== null) {
+        if (videoTimelineProgress > 0.015) {
+          videoPlaybackObserved = true;
+        }
+
         if (videoTimelineProgress >= videoCompletionThreshold) {
           videoSequenceComplete = true;
         }
@@ -904,8 +912,14 @@ function initHomeLoadingScreen() {
       if (videoSequenceComplete) return;
 
       const videoTimelineProgress = getVideoTimelineProgress();
-      if (videoTimelineProgress !== null && videoTimelineProgress >= videoCompletionThreshold) {
-        videoSequenceComplete = true;
+      if (videoTimelineProgress !== null) {
+        if (videoTimelineProgress > 0.015) {
+          videoPlaybackObserved = true;
+        }
+
+        if (videoTimelineProgress >= videoCompletionThreshold) {
+          videoSequenceComplete = true;
+        }
       }
 
       if (video.ended) {
@@ -940,7 +954,14 @@ function initHomeLoadingScreen() {
 
       video.addEventListener("loadeddata", () => resolveVideoProgress(true), { once: true });
       video.addEventListener("canplay", () => resolveVideoProgress(true), { once: true });
-      video.addEventListener("playing", () => resolveVideoProgress(true), { once: true });
+      video.addEventListener(
+        "playing",
+        () => {
+          videoPlaybackObserved = true;
+          resolveVideoProgress(true);
+        },
+        { once: true },
+      );
       video.addEventListener("error", () => resolveVideoProgress(false), { once: true });
     }
 
@@ -996,10 +1017,19 @@ function initHomeLoadingScreen() {
     if (finishRequested) return actualProgress;
 
     const elapsed = now - startTime;
+    if (hasVideo && !videoPlaybackObserved) {
+      const preVideoCap = elapsed >= preVideoGraceDuration ? preVideoDisplayCap + 2 : preVideoDisplayCap;
+      return Math.min(actualProgress, preVideoCap);
+    }
+
+    if (elapsed < introFreezeDuration) {
+      return Math.min(actualProgress, 2);
+    }
+
     if (elapsed >= introProgressCapDuration) return actualProgress;
 
-    const introProgress = elapsed / introProgressCapDuration;
-    const introCap = 1 + (introProgressCap - 1) * introProgress;
+    const introProgress = (elapsed - introFreezeDuration) / (introProgressCapDuration - introFreezeDuration);
+    const introCap = 2 + (introProgressCap - 2) * introProgress;
     return Math.min(actualProgress, introCap);
   };
 
