@@ -2395,17 +2395,23 @@ function escapeDisplayText(value, preservedPhrases = []) {
   return escapeHtml(stripDisplayNumbers(value, preservedPhrases));
 }
 
-function renderProjectCopyCard(paragraphs, preservedPhrases = []) {
+function renderProjectCopyCard(paragraphs, preservedPhrases = [], options = {}) {
   if (!Array.isArray(paragraphs) || !paragraphs.length) return "";
 
+  const label = typeof options.label === "string" ? options.label : "Project Overview";
+  const className = ["project-copy-card", options.className].filter(Boolean).join(" ");
+  const lowerCase = options.lowerCase === true;
   const copyMarkup = paragraphs
     .filter(Boolean)
-    .map((paragraph) => `<p>${escapeDisplayText(paragraph, preservedPhrases)}</p>`)
+    .map((paragraph) => {
+      const text = lowerCase ? String(paragraph).toLowerCase() : paragraph;
+      return `<p>${escapeDisplayText(text, preservedPhrases)}</p>`;
+    })
     .join("");
 
   return `
-    <div class="project-copy-card">
-      <span>Project Overview</span>
+    <div class="${className}">
+      ${label ? `<span>${escapeHtml(label)}</span>` : ""}
       ${copyMarkup}
     </div>
   `;
@@ -2987,8 +2993,14 @@ function renderProjectPage() {
   const project = { ...baseProject, ...archiveProject };
   const preservedProjectText = [project.title];
   const subtitleMarkup = project.subtitle ? `<small>${escapeDisplayText(project.subtitle)}</small>` : "";
-  const detailZhMarkup = renderProjectCopyCard(project.detailZh, preservedProjectText);
-  const detailEnMarkup = renderProjectCopyCard(project.detailEn, preservedProjectText);
+  const detailZhMarkup = renderProjectCopyCard(project.detailZh, preservedProjectText, {
+    className: "project-copy-card-primary",
+  });
+  const detailEnMarkup = renderProjectCopyCard(project.detailEn, preservedProjectText, {
+    label: "Project Overview",
+    className: "project-copy-card-secondary",
+    lowerCase: true,
+  });
 
   activeProjectCase = project;
   document.title = `LIULIAN ${project.title}`;
@@ -3010,7 +3022,7 @@ function renderProjectPage() {
         <div class="project-case-meta">
           <div class="project-case-meta-block">
             <span>Discipline</span>
-            <p>${escapeHtml(project.discipline)}</p>
+            <p>${escapeHtml(project.discipline.toLowerCase())}</p>
           </div>
           <div class="project-case-meta-block">
             <span>Frames</span>
@@ -3018,7 +3030,7 @@ function renderProjectPage() {
           </div>
           <div class="project-case-meta-block">
             <span>Author</span>
-            <p>LIULIAN Portfolio</p>
+            <p>liulian portfolio</p>
           </div>
         </div>
         ${detailZhMarkup ? `<div class="project-case-overview-copy">${detailZhMarkup}</div>` : ""}
