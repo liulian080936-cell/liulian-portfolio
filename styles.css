@@ -1685,13 +1685,11 @@ body[data-page="project"] .page-shell {
 }
 
 .project-case-back,
-.project-case-kicker span,
-.project-case-meta-block span,
-.project-case-overview-copy span,
-.project-case-overview-note span,
-.project-copy-card span,
+.project-case-kicker > span,
+.project-case-meta-block > span,
+.project-copy-card > span,
 .project-gallery-card figcaption,
-.project-case-nav-link span,
+.project-case-nav-link > span,
 .project-case-nav-center {
   font-size: var(--type-label-size);
   line-height: var(--type-label-leading);
@@ -4146,10 +4144,9 @@ body[data-page="posters"] .poster-drawer.is-project-drawer .poster-drawer-figure
   }
 
   body[data-page="project"] .project-case-back,
-  body[data-page="project"] .project-case-kicker span,
-  body[data-page="project"] .project-case-meta-block span,
-  body[data-page="project"] .project-case-overview-copy span,
-  body[data-page="project"] .project-case-overview-note span {
+  body[data-page="project"] .project-case-kicker > span,
+  body[data-page="project"] .project-case-meta-block > span,
+  body[data-page="project"] .project-copy-card > span {
     font-size: 0.56rem;
     line-height: var(--type-label-leading);
     letter-spacing: 0.16em;
