@@ -689,6 +689,7 @@ function createCountUpFormatter(from, to, separator = "") {
 
 function initHomeLoadingScreen() {
   const loader = document.getElementById("homeLoadingScreen");
+  const media = document.getElementById("homeLoadingMedia");
   const value = document.getElementById("homeLoadingValue");
   const label = document.getElementById("homeLoadingLabel");
   const video = document.getElementById("homeLoadingVideo");
@@ -728,7 +729,7 @@ function initHomeLoadingScreen() {
       ].join(", "),
     ),
   );
-  const videoStartTime = 0;
+  const videoStartTime = 0.5;
   const videoCompletionThreshold = 0.985;
   const videoPlaybackRate = prefersReducedMotion ? 1 : 2;
 
@@ -769,6 +770,13 @@ function initHomeLoadingScreen() {
   };
 
   const areAssetsReady = () => loadedAssetCount >= trackedAssetCount;
+  const markVideoPlaybackObserved = () => {
+    if (videoPlaybackObserved) return;
+
+    videoPlaybackObserved = true;
+    media?.classList.add("is-video-ready");
+  };
+
   const getProgressCap = () => (finishRequested ? 100 : preCompleteCap);
   const applyAssetDrivenProgress = (cap = getProgressCap()) => {
     const nextProgress = Math.min(getAssetDrivenProgress(), cap);
@@ -801,7 +809,7 @@ function initHomeLoadingScreen() {
 
       if (videoTimelineProgress !== null) {
         if (videoTimelineProgress > 0.015) {
-          videoPlaybackObserved = true;
+          markVideoPlaybackObserved();
         }
 
         if (videoTimelineProgress >= videoCompletionThreshold) {
@@ -873,6 +881,10 @@ function initHomeLoadingScreen() {
       if (videoHandled) return;
       videoHandled = true;
 
+      if (hasVideoFrames) {
+        markVideoPlaybackObserved();
+      }
+
       if (!hasVideoFrames) {
         videoSequenceComplete = true;
       }
@@ -914,7 +926,7 @@ function initHomeLoadingScreen() {
       const videoTimelineProgress = getVideoTimelineProgress();
       if (videoTimelineProgress !== null) {
         if (videoTimelineProgress > 0.015) {
-          videoPlaybackObserved = true;
+          markVideoPlaybackObserved();
         }
 
         if (videoTimelineProgress >= videoCompletionThreshold) {
@@ -957,7 +969,7 @@ function initHomeLoadingScreen() {
       video.addEventListener(
         "playing",
         () => {
-          videoPlaybackObserved = true;
+          markVideoPlaybackObserved();
           resolveVideoProgress(true);
         },
         { once: true },
