@@ -3681,9 +3681,6 @@ function initPage() {
   if (page === "posters") {
     renderPosterPage();
     scheduleNonCriticalTask(() => {
-      initGlobalScrambledText();
-    }, 180);
-    scheduleNonCriticalTask(() => {
       initPosterDrawer();
       initPosterPixelHover();
       initTargetCursor();
@@ -3693,9 +3690,6 @@ function initPage() {
 
   if (page === "project") {
     renderProjectPage();
-    scheduleNonCriticalTask(() => {
-      initGlobalScrambledText();
-    }, 180);
     scheduleNonCriticalTask(() => {
       initProjectDrawer();
       initTargetCursor();
@@ -3710,9 +3704,6 @@ function initPage() {
     initAboutDrawer();
     initProjectBrowserDrawer();
     scheduleNonCriticalTask(() => {
-      initGlobalScrambledText();
-    }, 240);
-    scheduleNonCriticalTask(() => {
       initHomeProjectPixelHover();
       initTargetCursor();
     }, 700);
@@ -3720,7 +3711,6 @@ function initPage() {
   }
 
   scheduleNonCriticalTask(() => {
-    initGlobalScrambledText();
     initTargetCursor();
   }, 400);
 }
