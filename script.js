@@ -438,26 +438,8 @@ const projectCaseSource = [
     ],
   },
   {
-    slug: "cipopo",
-    number: "12",
-    title: "CIPOPO",
-    subtitle: "",
-    discipline: "Smart Companion / Brand Identity",
-    accent: "#bac90b",
-    summary:
-      "A smart companion brand presented through sleek product imagery, restrained interfaces, and a calm emotional-tech atmosphere.",
-    detailZh: [
-      "CIPOPO 是乐享科技旗下的智能消费品牌，聚焦桌面机器人等新一代具身智能产品，打造轻量化、情绪友好、具备感知与反馈能力的智能陪伴载体。",
-      "它不同于以效率为导向的传统科技产品，更关注人与智能之间的关系质量，让智能以轻松、克制而不过度打扰的方式融入生活，让陪伴自然发生。",
-    ],
-    detailEn: [
-      "CIPOPO is a smart consumer brand focused on desktop robots and other next-generation embodied devices designed for gentle companionship.",
-      "Rather than foregrounding efficiency alone, it builds a calmer relationship between people and intelligence through light, emotionally aware interaction.",
-    ],
-  },
-  {
     slug: "ecoflow",
-    number: "13",
+    number: "12",
     title: "ECOFLOW",
     subtitle: "项目",
     discipline: "Campaign Visual / Launch Material",
@@ -475,7 +457,7 @@ const projectCaseSource = [
   },
   {
     slug: "double8-coffee",
-    number: "14",
+    number: "13",
     title: "DOUBLE 8 COFFEE",
     subtitle: "",
     discipline: "Coffee Branding / Visual Identity",
@@ -493,7 +475,7 @@ const projectCaseSource = [
   },
   {
     slug: "fivebook",
-    number: "15",
+    number: "14",
     title: "FIVEBOOK",
     subtitle: "五本书屋",
     discipline: "Bookstore Brand / Space Graphics",
@@ -511,7 +493,7 @@ const projectCaseSource = [
   },
   {
     slug: "flow-in",
-    number: "16",
+    number: "15",
     title: "FLOW IN",
     subtitle: "",
     discipline: "Lifestyle Space / Visual Identity",
@@ -529,7 +511,7 @@ const projectCaseSource = [
   },
   {
     slug: "shake-coffee",
-    number: "17",
+    number: "16",
     title: "SHAKE COFFEE",
     subtitle: "摇coffee",
     discipline: "Illustration Brand / Coffee System",
@@ -574,6 +556,37 @@ const projectGallerySpanPattern = [
   6,
   6,
 ];
+
+const projectCaseOrder = [
+  "fivebook",
+  "throbbing",
+  "nomokids",
+  "shake-coffee",
+  "newlife",
+  "supernova",
+  "smoo-market",
+  "flow-in",
+  "youth-tour",
+  "double8-coffee",
+  "ecoflow",
+  "alonewild",
+  "zero-m1",
+  "fechoes-2024",
+  "lumos-nyxel",
+  "to-see-is-to-believe",
+];
+const projectCaseOrderIndex = new Map(projectCaseOrder.map((slug, index) => [slug, index]));
+
+projectCaseSource.sort(
+  (left, right) =>
+    (projectCaseOrderIndex.get(left.slug) ?? Number.MAX_SAFE_INTEGER) -
+    (projectCaseOrderIndex.get(right.slug) ?? Number.MAX_SAFE_INTEGER),
+);
+
+projectCaseSource.forEach((project, index) => {
+  project.number = String(index + 1).padStart(2, "0");
+});
+
 const footerPreviewSource = {
   "selected-works": {
     title: "SELECTED WORKS",
@@ -585,7 +598,6 @@ const footerPreviewSource = {
       "./assets/projects/double8-coffee/1.webp",
       "./assets/projects/to-see-is-to-believe/1.jpg",
       "./assets/projects/zero-m1/1.webp",
-      "./assets/projects/cipopo/1.webp",
       "./assets/projects/ecoflow/12.webp",
       "./assets/projects/nomokids/0.webp",
     ],
@@ -606,23 +618,22 @@ const footerPreviewSource = {
   },
 };
 const projectBrowserPreviewOverrides = {
-  "youth-tour": "./assets/home/youth-tour.webp",
-  nomokids: "./assets/home/nomokids-cover.jpg",
-  "smoo-market": "./assets/home/smoo-cover.jpg",
-  "to-see-is-to-believe": "./assets/projects/to-see-is-to-believe/1.jpg",
-  "fechoes-2024": "./assets/projects/fechoes-2024/1.webp",
-  "lumos-nyxel": "./assets/projects/lumos-nyxel/1.webp",
-  newlife: "./assets/projects/newlife/18.webp",
-  throbbing: "./assets/home/throbbing.webp",
-  alonewild: "./assets/home/alonewild.webp",
-  supernova: "./assets/home/supernova.webp",
-  "zero-m1": "./assets/home/zero-m1.webp",
-  cipopo: "./assets/projects/cipopo/1.webp",
-  ecoflow: "./assets/home/ecoflow.webp",
-  "double8-coffee": "./assets/home/double8-cover.jpg",
-  fivebook: "./assets/home/fivebook.webp",
-  "flow-in": "./assets/home/flowin.webp",
-  "shake-coffee": "./assets/home/shake-coffee.webp",
+  fivebook: "./assets/home/frame-covers/fivebook.png",
+  throbbing: "./assets/home/frame-covers/throbbing.png",
+  nomokids: "./assets/home/frame-covers/nomokids.png",
+  "shake-coffee": "./assets/home/frame-covers/shake-coffee.png",
+  newlife: "./assets/home/frame-covers/newlife.png",
+  supernova: "./assets/home/frame-covers/supernova.png",
+  "smoo-market": "./assets/home/frame-covers/smoo-market.png",
+  "flow-in": "./assets/home/frame-covers/flow-in.png",
+  "youth-tour": "./assets/home/frame-covers/youth-tour.png",
+  "double8-coffee": "./assets/home/frame-covers/double8-coffee.png",
+  ecoflow: "./assets/home/frame-covers/ecoflow.png",
+  alonewild: "./assets/home/frame-covers/alonewild.png",
+  "zero-m1": "./assets/home/frame-covers/zero-m1.png",
+  "fechoes-2024": "./assets/home/frame-covers/fechoes-2024.png",
+  "lumos-nyxel": "./assets/home/frame-covers/lumos-nyxel.png",
+  "to-see-is-to-believe": "./assets/home/frame-covers/to-see-is-to-believe.png",
 };
 
 let activeCardPixelHover = null;
@@ -642,6 +653,7 @@ const targetCursorFrameSelector = [
   ".project-gallery-media",
   ".posters-band-strip",
   ".card-media",
+  ".cover-cloud-card-media",
 ].join(", ");
 const scrambledTextConfig = Object.freeze({
   radius: 110,
@@ -743,8 +755,8 @@ function initHomeLoadingScreen() {
   const trackedImages = Array.from(
     document.querySelectorAll(
       [
-        ".home-project-row .home-project-media img",
-        ".posters-band-strip .poster-thumb:nth-child(-n+2) img",
+        "body[data-page='home'] .posters-band-strip .poster-thumb:nth-child(-n+2) img",
+        "body[data-page='home'] .cover-cloud-reference .cover-cloud-card:nth-child(-n+4) img",
       ].join(", "),
     ),
   );
@@ -2464,10 +2476,7 @@ function applyIntrinsicAspectRatio(image, host = image?.parentElement) {
 
 function initHomeProjectMediaRatios() {
   const projectImages = document.querySelectorAll(
-    [
-      "body[data-page='home'] .editorial-card:not(.project-feature):not(.home-project-card):not(.home-project-list-item) .card-media img",
-      "body[data-page='home'] .home-project-list-media img",
-    ].join(", "),
+    "body[data-page='home'] .cover-cloud-card-media img",
   );
 
   projectImages.forEach((image) => {
@@ -2880,8 +2889,8 @@ function initProjectBrowserDrawer() {
   }
 
   grid.innerHTML = catalog.map((project) => renderProjectBrowserCard(project)).join("");
-  count.textContent = "Projects";
-  note.textContent = "Projects collected in one side preview. Click any card to open the full case study.";
+  count.textContent = `${catalog.length} Projects`;
+  note.textContent = `${catalog.length} projects collected in one side preview. Click any card to open the full case study.`;
 
   let closeTimer = 0;
   let lastActiveElement = null;
