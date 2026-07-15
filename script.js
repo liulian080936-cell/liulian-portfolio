@@ -754,26 +754,7 @@ function initHomeLoadingScreen() {
   const body = document.body;
   const startTime = performance.now();
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-  const constrainedNetwork = Boolean(connection?.saveData)
-    || /(^|-)2g$/i.test(connection?.effectiveType || "");
-  const constrainedDevice = Number.isFinite(navigator.deviceMemory)
-    && navigator.deviceMemory <= 2;
-  const hasVideo = video instanceof HTMLVideoElement
-    && !constrainedNetwork
-    && !constrainedDevice
-    && !prefersReducedMotion;
-
-  if (video instanceof HTMLVideoElement && !hasVideo) {
-    video.pause();
-    video.removeAttribute("src");
-    video.querySelectorAll("source").forEach((source) => source.removeAttribute("src"));
-    try {
-      video.load();
-    } catch {
-      // The poster remains visible when decorative video playback is unavailable.
-    }
-  }
+  const hasVideo = video instanceof HTMLVideoElement;
   const minDuration = prefersReducedMotion ? 900 : 1500;
   const maxDuration = 4200;
   const preCompleteCap = prefersReducedMotion ? 95 : 97;
