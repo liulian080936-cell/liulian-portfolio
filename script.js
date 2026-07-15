@@ -1878,8 +1878,10 @@ function initPosterDrawer() {
   const layout = document.querySelector("#posterLayout");
   const drawer = document.querySelector("#posterDrawer");
   const backdrop = document.querySelector("#posterDrawerBackdrop");
+  const scrollHost = drawer?.querySelector(".poster-case-shell");
   const stage = document.querySelector("#posterDrawerStage");
   const image = document.querySelector("#posterDrawerImage");
+  const additionalImages = document.querySelector("#posterDrawerAdditionalImages");
   const minimap = document.querySelector("#projectDrawerMinimap");
   const minimapList = document.querySelector("#projectDrawerMinimapList");
   const minimapBalance = document.querySelector("#posterDrawerBalance");
@@ -1905,8 +1907,10 @@ function initPosterDrawer() {
     !layout ||
     !drawer ||
     !backdrop ||
+    !scrollHost ||
     !stage ||
     !image ||
+    !additionalImages ||
     !minimap ||
     !minimapList ||
     !minimapBalance ||
@@ -1973,40 +1977,20 @@ function initPosterDrawer() {
   const resetStagePosition = () => {
     stage.scrollTop = 0;
     stage.scrollLeft = 0;
+    scrollHost.scrollTop = 0;
+    scrollHost.scrollLeft = 0;
     edgeWheelDelta = 0;
   };
 
   const syncImageFacts = () => {
     if (!activePoster) return;
-    size.textContent = "";
+    size.textContent = "poster design";
   };
 
   const renderMinimapList = () => {
-    if (!activePoster || activePoster.images.length <= 1) {
-      minimap.hidden = true;
-      minimapBalance.hidden = true;
-      minimapList.innerHTML = "";
-      return;
-    }
-
-    minimap.hidden = false;
-    minimapBalance.hidden = false;
-    minimapList.innerHTML = activePoster.images
-      .map(
-        (src, index) => `
-          <button
-            class="project-drawer-mini${index === activeImageIndex ? " is-active" : ""}"
-            type="button"
-            data-image-index="${index}"
-            aria-label="查看第 ${index + 1} 张海报"
-          >
-            <img class="deferred-image" data-src="${src}" alt="" loading="lazy" decoding="async" aria-hidden="true" />
-            <span class="project-drawer-mini-viewport" aria-hidden="true"></span>
-          </button>
-        `,
-      )
-      .join("");
-    queueDeferredImages(minimapList);
+    minimap.hidden = true;
+    minimapBalance.hidden = true;
+    minimapList.innerHTML = "";
   };
 
   const syncMinimapState = () => {
@@ -2061,12 +2045,30 @@ function initPosterDrawer() {
     if (!activeItem) return;
 
     resetStagePosition();
-    image.src = activeItem.src;
-    image.alt = buildImageAlt(activePoster, activeImageIndex);
+    activeImageIndex = 0;
+    image.src = activePoster.images[0];
+    image.alt = buildImageAlt(activePoster, 0);
+    additionalImages.innerHTML = activePoster.images
+      .slice(1)
+      .map(
+        (src, index) => `
+          <div class="poster-case-additional-item">
+            <img
+              class="deferred-image"
+              data-src="${src}"
+              alt="${escapeHtml(buildImageAlt(activePoster, index + 1))}"
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+        `,
+      )
+      .join("");
+    queueDeferredImages(additionalImages);
     counter.textContent = "";
     serial.textContent = "poster archive";
     title.textContent = `"${activePoster.title}"`;
-    size.textContent = "";
+    size.textContent = "poster design";
     location.textContent = activePoster.year;
     category.textContent = activePoster.images.length > 1 ? "variant set" : "single poster";
     details.textContent = "";
@@ -2148,6 +2150,7 @@ function initPosterDrawer() {
       drawer.hidden = true;
       backdrop.hidden = true;
       image.removeAttribute("src");
+      additionalImages.innerHTML = "";
       resetStagePosition();
 
       if (activeCard) {
@@ -2173,17 +2176,8 @@ function initPosterDrawer() {
   };
 
   const jumpWithinImage = (direction) => {
-    const scrollRange = Math.max(0, stage.scrollHeight - stage.clientHeight);
-    const atTop = stage.scrollTop <= 1;
-    const atBottom = stage.scrollTop + stage.clientHeight >= stage.scrollHeight - 1;
-
-    if (!scrollRange || (direction > 0 && atBottom) || (direction < 0 && atTop)) {
-      stepDrawerImage(direction);
-      return;
-    }
-
-    stage.scrollBy({
-      top: direction * Math.max(220, stage.clientHeight * 0.88),
+    scrollHost.scrollBy({
+      top: direction * Math.max(220, scrollHost.clientHeight * 0.88),
       behavior: "auto",
     });
   };
@@ -2262,8 +2256,6 @@ function initPosterDrawer() {
   prevButton.addEventListener("click", () => stepDrawerPoster(-1));
   nextButton.addEventListener("click", () => stepDrawerPoster(1));
   backdrop.addEventListener("click", closeDrawer);
-  stage.addEventListener("scroll", syncMinimapState);
-  stage.addEventListener("wheel", handleStageWheel, { passive: false });
   window.addEventListener("resize", syncMinimapState);
 
   window.addEventListener("keydown", (event) => {
@@ -2288,23 +2280,13 @@ function initPosterDrawer() {
 
     if (event.key === "ArrowRight") {
       event.preventDefault();
-      if (event.shiftKey) {
-        stepDrawerPoster(1);
-        return;
-      }
-
-      stepDrawerImage(1);
+      stepDrawerPoster(1);
       return;
     }
 
     if (event.key === "ArrowLeft") {
       event.preventDefault();
-      if (event.shiftKey) {
-        stepDrawerPoster(-1);
-        return;
-      }
-
-      stepDrawerImage(-1);
+      stepDrawerPoster(-1);
     }
   });
 }
@@ -2732,14 +2714,15 @@ const pillNavLogoSource = "./assets/liulian-durian.png";
 function getPillNavItems(context) {
   const isHome = context === "home";
   const isArchive = context === "archive";
-  const isProject = context === "project" || context === "project-drawer";
   const isProjectDrawer = context === "project-drawer";
+  const isPosterDrawer = context === "poster-drawer";
 
   const items = [
     {
       label: "Home",
       href: isArchive ? "" : "./index.html",
       proxy: isArchive ? "#projectBrowserClose" : "",
+      className: isProjectDrawer ? "project-detail-home" : "",
       active: isHome,
     },
     isHome
@@ -2755,7 +2738,11 @@ function getPillNavItems(context) {
         }
       : isArchive
         ? { label: "About", id: "projectBrowserInfo" }
-        : { label: "About", href: "./index.html#about" },
+        : {
+            label: "About",
+            href: "./index.html#about",
+            className: isProjectDrawer ? "project-detail-about" : "",
+          },
     isHome
       ? {
           label: "Projects",
@@ -2777,27 +2764,11 @@ function getPillNavItems(context) {
     {
       label: "Posters",
       href: "./posters.html",
-      active: context === "posters",
-      current: context === "posters",
+      active: context === "posters" || isPosterDrawer,
+      current: context === "posters" || isPosterDrawer,
     },
     { label: "Contact", href: "mailto:liulian080936@gmail.com" },
   ];
-
-  if (isProject) {
-    items.push(
-      isProjectDrawer
-        ? {
-            label: "Close",
-            className: "project-detail-close",
-            mobileProxy: ".project-detail-close",
-          }
-        : {
-            label: "Close",
-            href: "./index.html",
-            className: "project-detail-close",
-          },
-    );
-  }
 
   return items;
 }
@@ -3573,10 +3544,11 @@ function buildProjectBrowserCatalog() {
         width: 1600,
         height: 900,
       };
+      const homePreviewImage = projectBrowserPreviewOverrides[project.slug] || "";
       const previewImage =
+        homePreviewImage ||
         archiveProject?.images?.[previewSelection.index] ||
         archiveProject?.images?.[0] ||
-        projectBrowserPreviewOverrides[project.slug] ||
         "";
 
       if (!previewImage) return null;
@@ -3585,8 +3557,8 @@ function buildProjectBrowserCatalog() {
         ...project,
         imageCount,
         previewImage,
-        previewWidth: previewSelection.width,
-        previewHeight: previewSelection.height,
+        previewWidth: homePreviewImage ? 1200 : previewSelection.width,
+        previewHeight: homePreviewImage ? 1200 : previewSelection.height,
       };
     })
     .filter(Boolean);
@@ -3906,7 +3878,7 @@ function initProjectBrowserDrawer() {
       drawer.hidden = true;
       backdrop.hidden = true;
       lastActiveElement?.focus?.({ preventScroll: true });
-    }, 460);
+    }, 540);
 
     if (window.location.hash === "#projects") {
       const cleanUrl = `${window.location.pathname}${window.location.search}`;
@@ -3928,7 +3900,7 @@ function initProjectBrowserDrawer() {
     closeDrawer();
     window.setTimeout(() => {
       document.querySelector("#aboutDrawerTrigger")?.click();
-    }, 480);
+    }, 560);
   });
   backdrop.addEventListener("click", closeDrawer);
   drawer.addEventListener("click", (event) => {
@@ -4102,6 +4074,8 @@ function buildProjectTemplate(project, previousProject, nextProject, options = {
         data-pill-nav-host
         data-pill-nav-context="${isDrawer ? "project-drawer" : "project"}"
       ></header>
+
+      ${isDrawer ? '<button class="project-detail-close" type="button" hidden>关闭项目详情</button>' : ""}
 
       <div class="project-template-intro-space" aria-hidden="true"></div>
 
@@ -4361,9 +4335,9 @@ function initProjectDrawer() {
     size.textContent = "";
     location.textContent = stripDisplayNumbers(project.discipline, [project.title]);
     category.textContent = "selected image";
-    details.textContent = "";
-    description.textContent = "";
-    credits.textContent = "";
+    details.textContent = activePoster.details;
+    description.textContent = `Selected poster from the ${activePoster.year} archive.`;
+    credits.textContent = "Visual design / LIULIAN";
     awards.textContent = "";
     author.textContent = "liulian";
     collection.textContent = project.title;
@@ -4400,7 +4374,8 @@ function initProjectDrawer() {
         backdrop.classList.add("is-open");
         drawer.setAttribute("aria-hidden", "false");
         requestAnimationFrame(syncMinimapState);
-        closeButton.focus({ preventScroll: true });
+        const navCloseButton = drawer.querySelector('[data-pill-proxy="#posterDrawerClose"]');
+        (navCloseButton || closeButton).focus({ preventScroll: true });
       });
       return;
     }
@@ -4562,6 +4537,7 @@ function initProjectDrawer() {
       stepDrawerItem(event.key === "ArrowRight" ? 1 : -1);
     }
   });
+
 }
 
 function initProjectDetailDrawer() {
@@ -4649,8 +4625,8 @@ function initProjectDetailDrawer() {
       document.body.classList.add("project-detail-open");
       keepFirstFrameAtStart(drawer.dataset.projectSlug);
 
-      const closeButton = contentHost.querySelector(".project-detail-close");
-      closeButton?.focus?.({ preventScroll: true });
+      const homeLink = contentHost.querySelector(".project-detail-home");
+      homeLink?.focus?.({ preventScroll: true });
     });
   };
 
@@ -4688,6 +4664,33 @@ function initProjectDetailDrawer() {
   });
 
   contentHost.addEventListener("click", (event) => {
+    const homeLink = event.target.closest(".project-detail-home");
+    if (homeLink) {
+      event.preventDefault();
+      closeDrawer();
+      if (window.location.hash) {
+        const cleanUrl = `${window.location.pathname}${window.location.search}`;
+        window.history.replaceState(null, "", cleanUrl);
+      }
+      return;
+    }
+
+    const aboutLink = event.target.closest(".project-detail-about");
+    if (aboutLink) {
+      event.preventDefault();
+      closeDrawer();
+
+      window.setTimeout(() => {
+        const aboutTrigger = document.querySelector("#aboutDrawerTrigger");
+        if (!aboutTrigger) {
+          window.location.href = aboutLink.href;
+          return;
+        }
+        aboutTrigger.click();
+      }, 580);
+      return;
+    }
+
     const projectsLink = event.target.closest(".project-detail-projects");
     if (projectsLink) {
       event.preventDefault();
