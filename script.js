@@ -3193,7 +3193,8 @@ function animateFirstLoadDecryptedText(element) {
   const delay = (firstLoadDecryptSequence % 8) * 45;
   firstLoadDecryptSequence += 1;
 
-  window.setTimeout(() => {
+  entry.delayTimer = window.setTimeout(() => {
+    entry.delayTimer = 0;
     if (!document.documentElement.contains(element)) return;
 
     const speed = 86;
@@ -3201,14 +3202,15 @@ function animateFirstLoadDecryptedText(element) {
     let iteration = 0;
     element.classList.add("is-decrypting");
 
-    const interval = window.setInterval(() => {
+    entry.intervalTimer = window.setInterval(() => {
       iteration += 1;
       const revealedCount = Math.ceil((entry.visibleLength * iteration) / maxIterations);
       element.textContent = buildFirstLoadScrambledText(entry, revealedCount);
 
       if (iteration < maxIterations) return;
 
-      window.clearInterval(interval);
+      window.clearInterval(entry.intervalTimer);
+      entry.intervalTimer = 0;
       element.textContent = entry.original;
       element.classList.remove("is-decrypting");
       element.classList.add("is-decrypted");
@@ -3236,6 +3238,8 @@ function prepareFirstLoadDecryptedText(element) {
     animated: false,
     scrambled: false,
     layoutState: null,
+    delayTimer: 0,
+    intervalTimer: 0,
     addedAriaLabel: !element.hasAttribute("aria-label"),
   };
 
@@ -3251,15 +3255,69 @@ function prepareFirstLoadDecryptedText(element) {
   firstLoadDecryptObserver?.observe(element);
 }
 
-function registerFirstLoadDecryptedText(scope = document.body) {
+function getFirstLoadDecryptedTextCandidates(scope = document.body) {
   const base = scope instanceof Element || scope instanceof Document ? scope : scope?.parentElement;
-  if (!base?.querySelectorAll) return;
+  if (!base?.querySelectorAll) return [];
 
-  const candidates = [
+  return [
     ...(base instanceof Element && base.matches(firstLoadDecryptSelector) ? [base] : []),
     ...base.querySelectorAll(firstLoadDecryptSelector),
   ];
-  candidates.forEach(prepareFirstLoadDecryptedText);
+}
+
+function clearFirstLoadDecryptedTextAnimation(element, entry) {
+  window.clearTimeout(entry.delayTimer);
+  window.clearInterval(entry.intervalTimer);
+  entry.delayTimer = 0;
+  entry.intervalTimer = 0;
+  firstLoadDecryptObserver?.unobserve(element);
+  element.textContent = entry.original;
+  element.classList.remove("is-decrypting", "is-decrypted");
+  element.removeAttribute("data-decrypted-text-animated");
+  restoreFirstLoadDecryptLayout(element, entry);
+
+  if (entry.addedAriaLabel) {
+    element.removeAttribute("aria-label");
+  }
+}
+
+function settleFirstLoadDecryptedText(scope) {
+  getFirstLoadDecryptedTextCandidates(scope).forEach((element) => {
+    const entry = firstLoadDecryptEntries.get(element);
+    if (!entry) return;
+
+    clearFirstLoadDecryptedTextAnimation(element, entry);
+    entry.animated = true;
+    entry.scrambled = false;
+  });
+}
+
+function replayFirstLoadDecryptedText(scope) {
+  getFirstLoadDecryptedTextCandidates(scope).forEach((element) => {
+    const entry = firstLoadDecryptEntries.get(element);
+    if (!entry) {
+      prepareFirstLoadDecryptedText(element);
+      return;
+    }
+
+    clearFirstLoadDecryptedTextAnimation(element, entry);
+    entry.animated = false;
+    entry.scrambled = false;
+    if (entry.addedAriaLabel) {
+      element.setAttribute("aria-label", entry.original.trim());
+    }
+
+    const rect = element.getBoundingClientRect();
+    const isNearViewport = rect.bottom >= -40 && rect.top <= window.innerHeight + 40;
+    if (isNearViewport) {
+      showFirstLoadScrambledText(element, entry);
+    }
+    firstLoadDecryptObserver?.observe(element);
+  });
+}
+
+function registerFirstLoadDecryptedText(scope = document.body) {
+  getFirstLoadDecryptedTextCandidates(scope).forEach(prepareFirstLoadDecryptedText);
 }
 
 function startFirstLoadDecryptedText() {
@@ -3288,8 +3346,10 @@ function initFirstLoadDecryptedText({ waitForHomeReveal = false } = {}) {
 
     mutations.forEach((mutation) => {
       if (mutation.type === "attributes") {
-        if (mutation.target.getAttribute("aria-hidden") !== "true") {
-          registerFirstLoadDecryptedText(mutation.target);
+        if (mutation.target.getAttribute("aria-hidden") === "true") {
+          settleFirstLoadDecryptedText(mutation.target);
+        } else {
+          replayFirstLoadDecryptedText(mutation.target);
         }
         return;
       }
