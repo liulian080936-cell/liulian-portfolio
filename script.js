@@ -635,6 +635,24 @@ const projectBrowserPreviewOverrides = {
   "lumos-nyxel": "./assets/home/frame-covers/lumos-nyxel.png",
   "to-see-is-to-believe": "./assets/home/frame-covers/to-see-is-to-believe.png",
 };
+const projectBrowserPreviewSelections = {
+  fivebook: { index: 6, width: 1232, height: 1600 },
+  throbbing: { index: 24, width: 1600, height: 1067 },
+  nomokids: { index: 21, width: 1199, height: 1600 },
+  "shake-coffee": { index: 0, width: 1920, height: 1080 },
+  newlife: { index: 0, width: 1600, height: 900 },
+  supernova: { index: 3, width: 1920, height: 2511 },
+  "smoo-market": { index: 12, width: 1170, height: 1444 },
+  "flow-in": { index: 1, width: 1600, height: 1134 },
+  "youth-tour": { index: 8, width: 1600, height: 1133 },
+  "double8-coffee": { index: 18, width: 1600, height: 1036 },
+  ecoflow: { index: 8, width: 1600, height: 1126 },
+  alonewild: { index: 0, width: 1600, height: 900 },
+  "zero-m1": { index: 0, width: 1920, height: 1080 },
+  "fechoes-2024": { index: 9, width: 1080, height: 1439 },
+  "lumos-nyxel": { index: 1, width: 1600, height: 1232 },
+  "to-see-is-to-believe": { index: 0, width: 1440, height: 1440 },
+};
 
 let activeCardPixelHover = null;
 let posterArchiveGroups = [];
@@ -1041,6 +1059,7 @@ function initHomeLoadingScreen() {
     body.classList.remove("is-home-loading");
     body.classList.add("is-home-loading-revealing");
     body.removeAttribute("aria-busy");
+    document.dispatchEvent(new CustomEvent("home:content-revealed"));
 
     window.setTimeout(() => {
       body.classList.remove("is-home-loading-revealing");
@@ -1546,6 +1565,145 @@ function buildPosterArchiveGroups() {
       posters,
     };
   });
+}
+
+function initHomePosterMarquee() {
+  const strip = document.querySelector("#homePosterMarquee");
+  const track = document.querySelector("#homePosterMarqueeTrack");
+  const status = document.querySelector("#homePosterMarqueeStatus");
+  if (!strip || !track || !status) return;
+
+  const posters = buildPosterArchiveGroups()
+    .flatMap((group) =>
+      group.posters.map((poster) => ({
+        ...poster,
+        key: `${group.year}-${poster.serial}`,
+      })),
+    )
+    .slice(0, 14);
+
+  if (!posters.length) return;
+
+  const renderGroup = (duplicate = false) => `
+    <div class="poster-band-loop-group"${duplicate ? ' aria-hidden="true"' : ""}>
+      ${posters
+        .map((poster, index) => {
+          const eager = !duplicate && index < 2;
+          const imageSource = eager
+            ? `src="${poster.cover}"`
+            : `class="deferred-image" data-src="${poster.cover}"`;
+
+          return `
+            <button
+              class="poster-thumb"
+              type="button"
+              data-poster-key="${escapeHtml(poster.key)}"
+              aria-label="${escapeHtml(poster.title)}，点击暂停滚动"
+              aria-pressed="false"
+              ${duplicate ? 'tabindex="-1"' : ""}
+            >
+              <img
+                ${imageSource}
+                alt="${duplicate ? "" : escapeHtml(poster.alt)}"
+                loading="${eager ? "eager" : "lazy"}"
+                ${eager ? 'fetchpriority="high"' : 'fetchpriority="low"'}
+                decoding="async"
+              />
+            </button>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+
+  track.innerHTML = `${renderGroup()}${renderGroup(true)}`;
+  queueDeferredImages(track);
+
+  const cards = Array.from(track.querySelectorAll(".poster-thumb"));
+  const firstGroup = track.querySelector(".poster-band-loop-group");
+  let selectedKey = "";
+  let paused = false;
+  let inView = true;
+  let previousTime = performance.now();
+  let pixelRemainder = 0;
+
+  const syncSelection = () => {
+    cards.forEach((card) => {
+      const isSelected = Boolean(selectedKey) && card.dataset.posterKey === selectedKey;
+      card.classList.toggle("is-selected", isSelected);
+      card.setAttribute("aria-pressed", String(isSelected));
+      card.setAttribute(
+        "aria-label",
+        `${card.querySelector("img")?.alt || "Selected poster"}，${isSelected ? "点击继续滚动" : "点击暂停滚动"}`,
+      );
+    });
+    strip.classList.toggle("is-paused", paused);
+    status.textContent = paused
+      ? "海报滚动已暂停，再次点击所选海报可继续"
+      : "海报正在缓慢滚动";
+  };
+
+  track.addEventListener("click", (event) => {
+    const card = event.target.closest(".poster-thumb");
+    if (!card) return;
+
+    const nextKey = card.dataset.posterKey || "";
+    if (selectedKey === nextKey) {
+      selectedKey = "";
+      paused = false;
+    } else {
+      selectedKey = nextKey;
+      paused = true;
+    }
+    syncSelection();
+  });
+
+  const getLoopWidth = () => {
+    if (!firstGroup) return 0;
+    const trackStyles = window.getComputedStyle(track);
+    const gap = Number.parseFloat(trackStyles.columnGap || trackStyles.gap) || 0;
+    return firstGroup.getBoundingClientRect().width + gap;
+  };
+
+  const normalizePosition = () => {
+    const loopWidth = getLoopWidth();
+    if (!loopWidth) return;
+    while (strip.scrollLeft >= loopWidth) strip.scrollLeft -= loopWidth;
+    while (strip.scrollLeft < 0) strip.scrollLeft += loopWidth;
+  };
+
+  const tick = (time) => {
+    const elapsed = Math.min(64, time - previousTime);
+    previousTime = time;
+
+    if (!paused && inView && !document.hidden) {
+      const speed = window.innerWidth <= 720 ? 16 : 24;
+      pixelRemainder += (speed * elapsed) / 1000;
+      const wholePixels = Math.floor(pixelRemainder);
+
+      if (wholePixels > 0) {
+        strip.scrollLeft += wholePixels;
+        pixelRemainder -= wholePixels;
+        normalizePosition();
+      }
+    }
+
+    window.requestAnimationFrame(tick);
+  };
+
+  if ("IntersectionObserver" in window) {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        inView = Boolean(entry?.isIntersecting);
+      },
+      { threshold: 0.01 },
+    );
+    observer.observe(strip);
+  }
+
+  strip.addEventListener("scroll", normalizePosition, { passive: true });
+  syncSelection();
+  window.requestAnimationFrame(tick);
 }
 
 function renderPosterGroup(group, groupIndex) {
@@ -2485,7 +2643,7 @@ function initHomeProjectMediaRatios() {
 }
 
 function syncSiteHeaderHeight() {
-  const header = document.querySelector(".site-header");
+  const header = document.querySelector(".site-header, .project-template-header");
   if (!header) return;
 
   const updateHeaderHeight = () => {
@@ -2500,6 +2658,596 @@ function syncSiteHeaderHeight() {
   if ("ResizeObserver" in window) {
     const observer = new ResizeObserver(updateHeaderHeight);
     observer.observe(header);
+  }
+}
+
+const pillNavLogoSource = "./assets/liulian-durian.png";
+
+function getPillNavItems(context) {
+  const isHome = context === "home";
+  const isArchive = context === "archive";
+  const isProject = context === "project" || context === "project-drawer";
+  const isProjectDrawer = context === "project-drawer";
+
+  const items = [
+    {
+      label: "Home",
+      href: isArchive ? "" : "./index.html",
+      proxy: isArchive ? "#projectBrowserClose" : "",
+      active: isHome,
+    },
+    isHome
+      ? {
+          label: "About",
+          id: "aboutDrawerTrigger",
+          className: "about-drawer-trigger",
+          attrs: {
+            "aria-haspopup": "dialog",
+            "aria-controls": "aboutDrawer",
+            "aria-expanded": "false",
+          },
+        }
+      : isArchive
+        ? { label: "About", id: "projectBrowserInfo" }
+        : { label: "About", href: "./index.html#about" },
+    isHome
+      ? {
+          label: "Projects",
+          id: "projectBrowserTrigger",
+          className: "project-browser-trigger",
+          attrs: {
+            "aria-haspopup": "dialog",
+            "aria-controls": "projectBrowserDrawer",
+            "aria-expanded": "false",
+          },
+        }
+      : isArchive
+        ? { label: "Projects", current: true, active: true }
+        : {
+            label: "Projects",
+            href: "./index.html#projects",
+            className: isProjectDrawer ? "project-detail-projects" : "",
+          },
+    {
+      label: "Posters",
+      href: "./posters.html",
+      active: context === "posters",
+      current: context === "posters",
+    },
+    { label: "Contact", href: "mailto:liulian080936@gmail.com" },
+  ];
+
+  if (isProject) {
+    items.push(
+      isProjectDrawer
+        ? {
+            label: "Close",
+            className: "project-detail-close",
+            mobileProxy: ".project-detail-close",
+          }
+        : {
+            label: "Close",
+            href: "./index.html",
+            className: "project-detail-close",
+          },
+    );
+  }
+
+  return items;
+}
+
+function buildPillNavAttributes(attributes = {}) {
+  return Object.entries(attributes)
+    .filter(([, value]) => value !== "" && value !== null && value !== undefined)
+    .map(([name, value]) => `${name}="${escapeHtml(value)}"`)
+    .join(" ");
+}
+
+function buildPillNavItem(item, index, { mobile = false } = {}) {
+  const classNames = [
+    mobile ? "mobile-menu-link" : "pill",
+    item.active ? "is-active" : "",
+    item.className || "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const mobileProxy = item.mobileProxy || (item.id ? `#${item.id}` : item.proxy);
+  const attributes = {
+    ...(mobile ? {} : item.attrs || {}),
+    ...(item.active || item.current ? { "aria-current": "page" } : {}),
+    ...(mobile && mobileProxy ? { "data-pill-proxy": mobileProxy } : {}),
+    ...(!mobile && item.proxy ? { "data-pill-proxy": item.proxy } : {}),
+  };
+  const idAttribute = !mobile && item.id ? ` id="${escapeHtml(item.id)}"` : "";
+  const attributeMarkup = buildPillNavAttributes(attributes);
+  const content = mobile
+    ? escapeHtml(item.label)
+    : `
+        <span class="hover-circle" aria-hidden="true"></span>
+        <span class="label-stack">
+          <span class="pill-label">${escapeHtml(item.label)}</span>
+          <span class="pill-label-hover" aria-hidden="true">${escapeHtml(item.label)}</span>
+        </span>
+      `;
+
+  if (item.current) {
+    return `<span class="${classNames}"${idAttribute} ${attributeMarkup}>${content}</span>`;
+  }
+
+  if (item.href) {
+    return `<a class="${classNames}" href="${escapeHtml(item.href)}"${idAttribute} ${attributeMarkup}>${content}</a>`;
+  }
+
+  return `<button class="${classNames}" type="button"${idAttribute} ${attributeMarkup}>${content}</button>`;
+}
+
+function buildPillNavMarkup(context) {
+  const items = getPillNavItems(context);
+  const isArchive = context === "archive";
+  const logoMarkup = isArchive
+    ? `
+        <button class="pill-logo" id="projectBrowserClose" type="button" aria-label="关闭项目归档并返回首页">
+          <span class="sr-only" id="projectBrowserTitle">LIULIAN Project Archive</span>
+          <img src="${pillNavLogoSource}" alt="" aria-hidden="true" />
+        </button>
+      `
+    : `
+        <a class="pill-logo" href="./index.html" aria-label="返回首页">
+          <img src="${pillNavLogoSource}" alt="LIULIAN 榴莲 Logo" />
+        </a>
+      `;
+
+  return `
+    <div class="pill-nav-container">
+      <nav class="pill-nav" aria-label="主导航">
+        ${logoMarkup}
+        <div class="pill-nav-items desktop-only">
+          <ul class="pill-list" role="menubar">
+            ${items.map((item, index) => `<li role="none">${buildPillNavItem(item, index)}</li>`).join("")}
+          </ul>
+        </div>
+        <button class="mobile-menu-button mobile-only" type="button" aria-label="打开导航菜单" aria-expanded="false">
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+        </button>
+      </nav>
+      <div class="mobile-menu-popover mobile-only" aria-hidden="true">
+        <ul class="mobile-menu-list">
+          ${items.map((item, index) => `<li>${buildPillNavItem(item, index, { mobile: true })}</li>`).join("")}
+        </ul>
+      </div>
+    </div>
+  `;
+}
+
+function initPillNav(scope = document) {
+  const hosts = [
+    ...(scope instanceof Element && scope.matches("[data-pill-nav-host]") ? [scope] : []),
+    ...scope.querySelectorAll("[data-pill-nav-host]:not([data-pill-nav-ready])"),
+  ];
+
+  hosts.forEach((host) => {
+    if (host.dataset.pillNavReady === "true") return;
+
+    host.innerHTML = buildPillNavMarkup(host.dataset.pillNavContext || "home");
+    host.dataset.pillNavReady = "true";
+
+    const navItems = host.querySelector(".pill-nav-items");
+    const logo = host.querySelector(".pill-logo");
+    const logoImage = logo?.querySelector("img");
+    const menuButton = host.querySelector(".mobile-menu-button");
+    const mobileMenu = host.querySelector(".mobile-menu-popover");
+    const pills = Array.from(host.querySelectorAll(".pill-list .pill"));
+    const gsapApi = window.gsap;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let mobileMenuOpen = false;
+
+    const layoutPills = () => {
+      pills.forEach((pill) => {
+        const circle = pill.querySelector(".hover-circle");
+        const label = pill.querySelector(".pill-label");
+        const hoverLabel = pill.querySelector(".pill-label-hover");
+        if (!circle || !label || !hoverLabel) return;
+
+        const { width, height } = pill.getBoundingClientRect();
+        if (!width || !height) return;
+
+        const radius = ((width * width) / 4 + height * height) / (2 * height);
+        const diameter = Math.ceil(2 * radius) + 2;
+        const delta = Math.ceil(radius - Math.sqrt(Math.max(0, radius * radius - (width * width) / 4))) + 1;
+        circle.style.width = `${diameter}px`;
+        circle.style.height = `${diameter}px`;
+        circle.style.bottom = `-${delta}px`;
+        pill.dataset.pillHeight = String(height);
+
+        if (gsapApi) {
+          gsapApi.set(circle, {
+            xPercent: -50,
+            scale: 0,
+            transformOrigin: `50% ${diameter - delta}px`,
+          });
+          gsapApi.set(label, { y: 0 });
+          gsapApi.set(hoverLabel, { y: height + 12, opacity: 0 });
+        }
+      });
+    };
+
+    const animatePill = (pill, entering) => {
+      const circle = pill.querySelector(".hover-circle");
+      const label = pill.querySelector(".pill-label");
+      const hoverLabel = pill.querySelector(".pill-label-hover");
+      const height = Number.parseFloat(pill.dataset.pillHeight) || pill.offsetHeight;
+      pill.classList.toggle("is-hovered", entering);
+      if (!gsapApi || reducedMotion || !circle || !label || !hoverLabel) return;
+
+      gsapApi.to(circle, {
+        scale: entering ? 1.2 : 0,
+        xPercent: -50,
+        duration: entering ? 0.3 : 0.2,
+        ease: "power3.out",
+        overwrite: "auto",
+      });
+      gsapApi.to(label, {
+        y: entering ? -(height + 8) : 0,
+        duration: entering ? 0.3 : 0.2,
+        ease: "power3.out",
+        overwrite: "auto",
+      });
+      gsapApi.to(hoverLabel, {
+        y: entering ? 0 : height + 12,
+        opacity: entering ? 1 : 0,
+        duration: entering ? 0.3 : 0.2,
+        ease: "power3.out",
+        overwrite: "auto",
+      });
+    };
+
+    pills.forEach((pill) => {
+      pill.addEventListener("mouseenter", () => animatePill(pill, true));
+      pill.addEventListener("mouseleave", () => animatePill(pill, false));
+      pill.addEventListener("focus", () => animatePill(pill, true));
+      pill.addEventListener("blur", () => animatePill(pill, false));
+    });
+
+    const setMobileMenu = (open) => {
+      mobileMenuOpen = open;
+      if (!menuButton || !mobileMenu) return;
+
+      menuButton.setAttribute("aria-expanded", String(open));
+      menuButton.setAttribute("aria-label", open ? "关闭导航菜单" : "打开导航菜单");
+      mobileMenu.setAttribute("aria-hidden", String(!open));
+      const lines = menuButton.querySelectorAll(".hamburger-line");
+
+      if (gsapApi && !reducedMotion) {
+        gsapApi.to(lines[0], { rotation: open ? 45 : 0, y: open ? 3 : 0, duration: 0.3, ease: "power3.out" });
+        gsapApi.to(lines[1], { rotation: open ? -45 : 0, y: open ? -3 : 0, duration: 0.3, ease: "power3.out" });
+        if (open) {
+          gsapApi.set(mobileMenu, { visibility: "visible" });
+          gsapApi.fromTo(
+            mobileMenu,
+            { opacity: 0, y: 10 },
+            { opacity: 1, y: 0, duration: 0.3, ease: "power3.out", overwrite: "auto" },
+          );
+        } else {
+          gsapApi.to(mobileMenu, {
+            opacity: 0,
+            y: 10,
+            duration: 0.2,
+            ease: "power3.out",
+            overwrite: "auto",
+            onComplete: () => gsapApi.set(mobileMenu, { visibility: "hidden" }),
+          });
+        }
+      } else {
+        mobileMenu.style.visibility = open ? "visible" : "hidden";
+        mobileMenu.style.opacity = open ? "1" : "0";
+        mobileMenu.style.transform = open ? "translateY(0)" : "translateY(10px)";
+      }
+    };
+
+    menuButton?.addEventListener("click", () => setMobileMenu(!mobileMenuOpen));
+    host.querySelectorAll("[data-pill-proxy]").forEach((control) => {
+      control.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const selector = control.dataset.pillProxy;
+        const target = host.querySelector(selector) || document.querySelector(selector);
+        if (target && target !== control) target.click();
+        setMobileMenu(false);
+      });
+    });
+    host.querySelectorAll(".mobile-menu-link[href]").forEach((link) => {
+      link.addEventListener("click", () => setMobileMenu(false));
+    });
+
+    logo?.addEventListener("mouseenter", () => {
+      if (!gsapApi || reducedMotion || !logoImage) return;
+      gsapApi.to(logoImage, { rotation: "+=360", duration: 0.32, ease: "power2.out", overwrite: "auto" });
+    });
+
+    if (mobileMenu) {
+      mobileMenu.style.visibility = "hidden";
+      mobileMenu.style.opacity = "0";
+    }
+
+    layoutPills();
+    window.addEventListener("resize", layoutPills, { passive: true });
+    document.fonts?.ready?.then(layoutPills).catch(() => {});
+
+    if (gsapApi && !reducedMotion && logo) {
+      gsapApi.fromTo(logo, { scale: 0 }, { scale: 1, duration: 0.6, ease: "power3.out" });
+      if (navItems?.scrollWidth) {
+        const targetWidth = navItems.scrollWidth;
+        gsapApi.fromTo(
+          navItems,
+          { width: 0, opacity: 0, overflow: "hidden" },
+          {
+            width: targetWidth,
+            opacity: 1,
+            duration: 0.6,
+            ease: "power3.out",
+            onComplete: () => gsapApi.set(navItems, { clearProps: "width,opacity,overflow" }),
+          },
+        );
+      }
+    }
+  });
+}
+
+let firstLoadDecryptInitialized = false;
+let firstLoadDecryptStarted = false;
+let firstLoadDecryptObserver = null;
+let firstLoadDecryptMutationObserver = null;
+let firstLoadDecryptSequence = 0;
+const firstLoadDecryptEntries = new WeakMap();
+const firstLoadDecryptSelector = [
+  "a",
+  "button",
+  "p",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "strong",
+  "small",
+  "label",
+  "li",
+  "blockquote",
+  "figcaption",
+  "dt",
+  "dd",
+  "span",
+].join(",");
+
+function shouldDecryptFirstLoadText(element) {
+  if (!(element instanceof Element)) return false;
+  if (element.dataset.decryptedTextReady === "true") return false;
+  if (element.children.length) return false;
+  if (
+    element.closest(
+        "[data-decrypted-skip='true'], [aria-hidden='true'], .sr-only",
+    )
+  ) {
+    return false;
+  }
+  if (element.matches("time, script, style, noscript, textarea, input, select, option")) return false;
+
+  const text = element.textContent || "";
+  const visibleCharacters = [...text].filter((character) => !/\s/.test(character));
+  if (visibleCharacters.length < 2 || text.length > 260) return false;
+  return /[A-Za-z0-9\u3400-\u9fff]/.test(text);
+}
+
+function buildFirstLoadScrambledText(entry, revealedCount = 0) {
+  let visibleIndex = 0;
+
+  return [...entry.original]
+    .map((character) => {
+      if (/\s/.test(character)) return character;
+
+      const index = visibleIndex;
+      visibleIndex += 1;
+      if (index < revealedCount) return character;
+
+      return entry.characters[Math.floor(Math.random() * entry.characters.length)] || character;
+    })
+    .join("");
+}
+
+function lockFirstLoadDecryptLayout(element, entry) {
+  if (entry.layoutState) return true;
+
+  const rect = element.getBoundingClientRect();
+  if (!rect.width || !rect.height) return false;
+
+  const computedStyle = window.getComputedStyle(element);
+  const properties = [
+    "boxSizing",
+    "display",
+    "width",
+    "height",
+    "minWidth",
+    "maxWidth",
+    "minHeight",
+    "maxHeight",
+    "overflow",
+    "verticalAlign",
+  ];
+  entry.layoutState = Object.fromEntries(
+    properties.map((property) => [property, element.style[property]]),
+  );
+
+  element.style.boxSizing = "border-box";
+  if (computedStyle.display === "inline") {
+    element.style.display = "inline-block";
+    element.style.verticalAlign = computedStyle.verticalAlign;
+  }
+  element.style.width = `${rect.width}px`;
+  element.style.height = `${rect.height}px`;
+  element.style.minWidth = `${rect.width}px`;
+  element.style.maxWidth = `${rect.width}px`;
+  element.style.minHeight = `${rect.height}px`;
+  element.style.maxHeight = `${rect.height}px`;
+  element.style.overflow = "hidden";
+  return true;
+}
+
+function restoreFirstLoadDecryptLayout(element, entry) {
+  if (!entry.layoutState) return;
+
+  Object.entries(entry.layoutState).forEach(([property, value]) => {
+    element.style[property] = value;
+  });
+  entry.layoutState = null;
+}
+
+function showFirstLoadScrambledText(element, entry) {
+  if (entry.scrambled) return true;
+  if (!lockFirstLoadDecryptLayout(element, entry)) return false;
+
+  element.textContent = buildFirstLoadScrambledText(entry);
+  entry.scrambled = true;
+  return true;
+}
+
+function animateFirstLoadDecryptedText(element) {
+  const entry = firstLoadDecryptEntries.get(element);
+  if (!entry || entry.animated) return;
+
+  if (!showFirstLoadScrambledText(element, entry)) {
+    element.textContent = entry.original;
+    entry.animated = true;
+    return;
+  }
+
+  entry.animated = true;
+  element.dataset.decryptedTextAnimated = "true";
+  const delay = (firstLoadDecryptSequence % 8) * 45;
+  firstLoadDecryptSequence += 1;
+
+  window.setTimeout(() => {
+    if (!document.documentElement.contains(element)) return;
+
+    const speed = 86;
+    const maxIterations = 14;
+    let iteration = 0;
+    element.classList.add("is-decrypting");
+
+    const interval = window.setInterval(() => {
+      iteration += 1;
+      const revealedCount = Math.ceil((entry.visibleLength * iteration) / maxIterations);
+      element.textContent = buildFirstLoadScrambledText(entry, revealedCount);
+
+      if (iteration < maxIterations) return;
+
+      window.clearInterval(interval);
+      element.textContent = entry.original;
+      element.classList.remove("is-decrypting");
+      element.classList.add("is-decrypted");
+      restoreFirstLoadDecryptLayout(element, entry);
+
+      if (entry.addedAriaLabel) {
+        element.removeAttribute("aria-label");
+      }
+    }, speed);
+  }, delay);
+}
+
+function prepareFirstLoadDecryptedText(element) {
+  if (!shouldDecryptFirstLoadText(element)) return;
+
+  const original = element.textContent || "";
+  const originalCharacters = [...new Set([...original].filter((character) => !/\s/.test(character)))];
+  const characters = originalCharacters.length > 1
+    ? originalCharacters
+    : [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*+"];
+  const entry = {
+    original,
+    characters,
+    visibleLength: [...original].filter((character) => !/\s/.test(character)).length,
+    animated: false,
+    scrambled: false,
+    layoutState: null,
+    addedAriaLabel: !element.hasAttribute("aria-label"),
+  };
+
+  firstLoadDecryptEntries.set(element, entry);
+  element.dataset.decryptedTextReady = "true";
+  if (entry.addedAriaLabel) element.setAttribute("aria-label", original.trim());
+
+  const rect = element.getBoundingClientRect();
+  const isNearViewport = rect.bottom >= -40 && rect.top <= window.innerHeight + 40;
+  if (isNearViewport) {
+    showFirstLoadScrambledText(element, entry);
+  }
+  firstLoadDecryptObserver?.observe(element);
+}
+
+function registerFirstLoadDecryptedText(scope = document.body) {
+  const base = scope instanceof Element || scope instanceof Document ? scope : scope?.parentElement;
+  if (!base?.querySelectorAll) return;
+
+  const candidates = [
+    ...(base instanceof Element && base.matches(firstLoadDecryptSelector) ? [base] : []),
+    ...base.querySelectorAll(firstLoadDecryptSelector),
+  ];
+  candidates.forEach(prepareFirstLoadDecryptedText);
+}
+
+function startFirstLoadDecryptedText() {
+  if (firstLoadDecryptStarted) return;
+  firstLoadDecryptStarted = true;
+  registerFirstLoadDecryptedText(document.body);
+}
+
+function initFirstLoadDecryptedText({ waitForHomeReveal = false } = {}) {
+  if (firstLoadDecryptInitialized) return;
+  firstLoadDecryptInitialized = true;
+
+  firstLoadDecryptObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        firstLoadDecryptObserver.unobserve(entry.target);
+        animateFirstLoadDecryptedText(entry.target);
+      });
+    },
+    { root: null, rootMargin: "40px 0px", threshold: 0.1 },
+  );
+
+  firstLoadDecryptMutationObserver = new MutationObserver((mutations) => {
+    if (!firstLoadDecryptStarted) return;
+
+    mutations.forEach((mutation) => {
+      if (mutation.type === "attributes") {
+        if (mutation.target.getAttribute("aria-hidden") !== "true") {
+          registerFirstLoadDecryptedText(mutation.target);
+        }
+        return;
+      }
+
+      mutation.addedNodes.forEach((node) => {
+        if (node instanceof Element) {
+          registerFirstLoadDecryptedText(node);
+        } else if (node.parentElement) {
+          registerFirstLoadDecryptedText(node.parentElement);
+        }
+      });
+    });
+  });
+  firstLoadDecryptMutationObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["aria-hidden"],
+  });
+
+  if (waitForHomeReveal) {
+    document.addEventListener("home:content-revealed", startFirstLoadDecryptedText, { once: true });
+  } else {
+    startFirstLoadDecryptedText();
   }
 }
 
@@ -2686,26 +3434,6 @@ function initFooterLinkPreviews() {
   );
 }
 
-function buildProjectBrowserTags(project, imageCount) {
-  const tags = [];
-
-  if (project.subtitle) {
-    tags.push(stripDisplayNumbers(project.subtitle));
-  }
-
-  project.discipline
-    .split("/")
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .forEach((tag) => tags.push(stripDisplayNumbers(tag)));
-
-  if (imageCount) {
-    tags.push("frames");
-  }
-
-  return tags.filter((tag, index) => tags.indexOf(tag) === index).slice(0, 4);
-}
-
 function buildProjectBrowserCatalog() {
   const manifest = Array.isArray(window.__PROJECT_MANIFEST__) ? window.__PROJECT_MANIFEST__ : [];
   const manifestMap = new Map(manifest.map((entry) => [entry.slug, entry]));
@@ -2714,9 +3442,15 @@ function buildProjectBrowserCatalog() {
     .map((project) => {
       const archiveProject = manifestMap.get(project.slug);
       const imageCount = archiveProject?.imageCount || 0;
+      const previewSelection = projectBrowserPreviewSelections[project.slug] || {
+        index: 0,
+        width: 1600,
+        height: 900,
+      };
       const previewImage =
-        projectBrowserPreviewOverrides[project.slug] ||
+        archiveProject?.images?.[previewSelection.index] ||
         archiveProject?.images?.[0] ||
+        projectBrowserPreviewOverrides[project.slug] ||
         "";
 
       if (!previewImage) return null;
@@ -2725,44 +3459,123 @@ function buildProjectBrowserCatalog() {
         ...project,
         imageCount,
         previewImage,
-        tags: buildProjectBrowserTags(project, imageCount),
-        variant: "square",
-        isContain: false,
+        previewWidth: previewSelection.width,
+        previewHeight: previewSelection.height,
       };
     })
     .filter(Boolean);
 }
 
+function isProjectBrowserVideo(source) {
+  return /\.(?:mp4|webm|mov)(?:[?#].*)?$/i.test(source);
+}
+
+function renderProjectBrowserMedia(project) {
+  const mediaAttributes = `
+    class="project-browser-card-image${isProjectBrowserVideo(project.previewImage) ? "" : " deferred-image"}"
+    width="${project.previewWidth}"
+    height="${project.previewHeight}"
+    data-src="${project.previewImage}"
+    aria-label="${escapeHtml(project.title)} preview"
+  `;
+
+  if (isProjectBrowserVideo(project.previewImage)) {
+    return `<video ${mediaAttributes} muted loop playsinline preload="none"></video>`;
+  }
+
+  return `<img ${mediaAttributes} alt="${escapeHtml(project.title)} preview" loading="lazy" decoding="async" />`;
+}
+
 function renderProjectBrowserCard(project) {
   const displayTitle = project.title;
-  const tagsMarkup = project.tags
-    .map((tag) => `<span class="project-browser-card-tag">${escapeHtml(tag)}</span>`)
-    .join("");
 
   return `
     <a
-      class="project-browser-card${project.isContain ? " is-contain" : ""}"
-      data-variant="${project.variant}"
+      class="project-browser-card"
       href="./project.html?slug=${encodeURIComponent(project.slug)}"
       aria-label="查看 ${escapeHtml(displayTitle)} 项目详情"
       style="--project-accent: ${project.accent};"
     >
-      <div class="project-browser-card-surface">
-        <span class="project-browser-card-label">${escapeHtml(displayTitle)}</span>
-        <span class="project-browser-card-arrow" aria-hidden="true">↗</span>
-        <img
-          class="project-browser-card-image"
-          src="${project.previewImage}"
-          alt="${escapeHtml(displayTitle)} preview"
-          loading="lazy"
-          decoding="async"
-        />
-        <div class="project-browser-card-tags">
-          ${tagsMarkup}
-        </div>
+      <figure
+        class="project-browser-card-surface"
+        style="aspect-ratio: ${project.previewWidth} / ${project.previewHeight};"
+      >
+        ${renderProjectBrowserMedia(project)}
+      </figure>
+      <div class="project-browser-card-copy">
+        <strong class="project-browser-card-title">${escapeHtml(displayTitle)}</strong>
       </div>
     </a>
   `;
+}
+
+function renderProjectBrowserGrid(catalog) {
+  const baseColumnSize = Math.floor(catalog.length / 3);
+  const columnSizes = [
+    baseColumnSize,
+    baseColumnSize,
+    catalog.length - baseColumnSize * 2,
+  ];
+  let offset = 0;
+
+  return columnSizes
+    .map((size, columnIndex) => {
+      const projects = catalog.slice(offset, offset + size);
+      offset += size;
+
+      return `
+        <div class="project-browser-column" data-project-column="${columnIndex + 1}">
+          ${projects.map((project) => renderProjectBrowserCard(project)).join("")}
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function initProjectBrowserVideos(scope) {
+  const videos = Array.from(scope.querySelectorAll("video[data-src]"));
+  if (!videos.length) return;
+
+  const hydrateVideo = (video) => {
+    if (!video.dataset.src) return;
+    video.src = video.dataset.src;
+    video.removeAttribute("data-src");
+    video.load();
+  };
+
+  const playVideo = (video) => {
+    hydrateVideo(video);
+    video.play().catch(() => {});
+  };
+
+  if ("IntersectionObserver" in window) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const video = entry.target;
+          video.dataset.inViewport = String(entry.isIntersecting);
+          if (entry.isIntersecting) {
+            playVideo(video);
+            return;
+          }
+          video.pause();
+        });
+      },
+      { rootMargin: "420px 0px", threshold: 0.05 },
+    );
+
+    videos.forEach((video) => observer.observe(video));
+  } else {
+    videos.forEach(hydrateVideo);
+  }
+
+  videos.forEach((video) => {
+    const card = video.closest(".project-browser-card");
+    card?.addEventListener("pointerenter", () => playVideo(video));
+    card?.addEventListener("pointerleave", () => {
+      if (video.dataset.inViewport !== "true") video.pause();
+    });
+  });
 }
 
 function initAboutDrawer() {
@@ -2874,10 +3687,11 @@ function initProjectBrowserDrawer() {
   const backdrop = document.querySelector("#projectBrowserBackdrop");
   const grid = document.querySelector("#projectBrowserGrid");
   const closeButton = document.querySelector("#projectBrowserClose");
-  const count = document.querySelector("#projectBrowserCount");
+  const infoButton = document.querySelector("#projectBrowserInfo");
   const note = document.querySelector("#projectBrowserNote");
+  const localTime = document.querySelector("#projectBrowserLocalTime");
 
-  if (!trigger || !drawer || !shell || !backdrop || !grid || !closeButton || !count || !note) {
+  if (!trigger || !drawer || !shell || !backdrop || !grid || !closeButton || !note || !localTime) {
     return;
   }
 
@@ -2888,9 +3702,25 @@ function initProjectBrowserDrawer() {
     return;
   }
 
-  grid.innerHTML = catalog.map((project) => renderProjectBrowserCard(project)).join("");
-  count.textContent = `${catalog.length} Projects`;
-  note.textContent = `${catalog.length} projects collected in one side preview. Click any card to open the full case study.`;
+  grid.innerHTML = renderProjectBrowserGrid(catalog);
+  queueDeferredImages(grid);
+  initProjectBrowserVideos(grid);
+  note.textContent = `${catalog.length} selected identity, campaign, print, retail and cultural projects developed between 2022 and 2026. The archive remains image-led, open and intentionally flexible.`;
+
+  const localTimeFormatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Shanghai",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  const updateLocalTime = () => {
+    const now = new Date();
+    localTime.textContent = `${localTimeFormatter.format(now)} SHANGHAI`;
+    localTime.dateTime = now.toISOString();
+  };
+  updateLocalTime();
+  window.setInterval(updateLocalTime, 1000);
 
   let closeTimer = 0;
   let lastActiveElement = null;
@@ -2904,13 +3734,18 @@ function initProjectBrowserDrawer() {
       backdrop.hidden = false;
     }
 
+    shell.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    updateLocalTime();
+
     window.requestAnimationFrame(() => {
       drawer.classList.add("is-open");
       shell.classList.add("is-open");
       backdrop.classList.add("is-open");
       drawer.setAttribute("aria-hidden", "false");
       trigger.setAttribute("aria-expanded", "true");
+      trigger.classList.add("is-active");
       document.body.classList.add("project-browser-open");
+      window.dispatchEvent(new Event("resize"));
     });
 
     closeButton.focus({ preventScroll: true });
@@ -2924,14 +3759,21 @@ function initProjectBrowserDrawer() {
     backdrop.classList.remove("is-open");
     drawer.setAttribute("aria-hidden", "true");
     trigger.setAttribute("aria-expanded", "false");
+    trigger.classList.remove("is-active");
     document.body.classList.remove("project-browser-open");
+    grid.querySelectorAll("video").forEach((video) => video.pause());
 
     window.clearTimeout(closeTimer);
     closeTimer = window.setTimeout(() => {
       drawer.hidden = true;
       backdrop.hidden = true;
       lastActiveElement?.focus?.({ preventScroll: true });
-    }, 280);
+    }, 460);
+
+    if (window.location.hash === "#projects") {
+      const cleanUrl = `${window.location.pathname}${window.location.search}`;
+      window.history.replaceState(null, "", cleanUrl);
+    }
   };
 
   trigger.addEventListener("click", () => {
@@ -2944,6 +3786,12 @@ function initProjectBrowserDrawer() {
   });
 
   closeButton.addEventListener("click", closeDrawer);
+  infoButton?.addEventListener("click", () => {
+    closeDrawer();
+    window.setTimeout(() => {
+      document.querySelector("#aboutDrawerTrigger")?.click();
+    }, 480);
+  });
   backdrop.addEventListener("click", closeDrawer);
   drawer.addEventListener("click", (event) => {
     if (event.target !== drawer) return;
@@ -2955,34 +3803,81 @@ function initProjectBrowserDrawer() {
     if (event.key !== "Escape") return;
     closeDrawer();
   });
+
+  const syncProjectDrawerFromHash = () => {
+    if (window.location.hash === "#projects") {
+      openDrawer();
+    }
+  };
+
+  window.addEventListener("hashchange", syncProjectDrawerFromHash);
+  syncProjectDrawerFromHash();
 }
 
 function buildProjectFrameLabel(index) {
   return String(index + 1).padStart(2, "0");
 }
 
-function buildProjectGallery(project) {
-  const images = project.images.slice(1);
+function buildProjectCatalog() {
+  const manifest = Array.isArray(window.__PROJECT_MANIFEST__) ? window.__PROJECT_MANIFEST__ : [];
+  const manifestMap = new Map(manifest.map((entry) => [entry.slug, entry]));
 
-  return images
+  return projectCaseSource
+    .map((project) => {
+      const archiveProject = manifestMap.get(project.slug);
+      if (!archiveProject?.images?.length) return null;
+      return { ...project, ...archiveProject };
+    })
+    .filter(Boolean);
+}
+
+function getProjectContext(slug) {
+  const catalog = buildProjectCatalog();
+  if (!catalog.length) return null;
+
+  const projectIndex = catalog.findIndex((project) => project.slug === slug);
+  const currentIndex = projectIndex >= 0 ? projectIndex : 0;
+
+  return {
+    project: catalog[currentIndex],
+    previousProject: catalog[(currentIndex - 1 + catalog.length) % catalog.length],
+    nextProject: catalog[(currentIndex + 1) % catalog.length],
+  };
+}
+
+function buildProjectTemplateMedia(project, options = {}) {
+  const isInteractive = options.interactive !== false;
+
+  return project.images
     .map((src, index) => {
-      const isClosingFrame = index === images.length - 1;
-      const span = isClosingFrame
-        ? 12
-        : projectGallerySpanPattern[index % projectGallerySpanPattern.length];
-      const imageIndex = index + 1;
+      const isLead = index === 0;
+      const slot = index % 6;
+      const widthClass = slot === 1 || slot === 2 || slot === 4 || slot === 5
+        ? "is-half"
+        : "is-wide";
+      const pairKey = widthClass === "is-half"
+        ? `${Math.floor(index / 6)}-${slot <= 2 ? "a" : "b"}`
+        : "";
+      const mediaClass = isLead ? "project-case-lead-media" : "project-gallery-media";
+      const figureClass = isLead ? "project-case-lead" : "project-gallery-card";
+      const imageAttributes = isLead
+        ? `src="${src}" loading="eager" fetchpriority="high"`
+        : `class="deferred-image" data-src="${src}" loading="lazy"`;
+
+      const interactiveClass = isInteractive ? " project-image-trigger" : "";
+      const interactiveAttributes = isInteractive
+        ? `tabindex="0" role="button" aria-haspopup="dialog" aria-label="查看 ${escapeHtml(project.title)} 项目图片 ${index + 1}"`
+        : "";
 
       return `
         <figure
-          class="project-gallery-card project-image-trigger span-${span}${isClosingFrame ? " is-closing-frame" : ""}"
-          tabindex="0"
-          role="button"
-          aria-haspopup="dialog"
-          aria-label="Open ${escapeHtml(project.title)} project image"
-          data-project-image-index="${imageIndex}"
+          class="project-template-media ${figureClass}${interactiveClass} ${widthClass}"
+          ${interactiveAttributes}
+          data-project-image-index="${index}"
+          ${pairKey ? `data-project-media-pair="${pairKey}"` : ""}
         >
-          <div class="project-gallery-media">
-            <img class="deferred-image" data-src="${src}" alt="${escapeHtml(project.title)} project image" loading="lazy" decoding="async" />
+          <div class="${mediaClass}">
+            <img ${imageAttributes} alt="${escapeHtml(project.title)} project image ${index + 1}" decoding="async" />
           </div>
         </figure>
       `;
@@ -2990,122 +3885,175 @@ function buildProjectGallery(project) {
     .join("");
 }
 
+function harmonizeProjectMediaPairs(root) {
+  if (!root) return;
+
+  const pairs = new Map();
+  root.querySelectorAll("[data-project-media-pair]").forEach((item) => {
+    const key = item.dataset.projectMediaPair;
+    if (!pairs.has(key)) pairs.set(key, []);
+    pairs.get(key).push(item);
+  });
+
+  const expandPair = (items) => {
+    items.forEach((item) => {
+      item.classList.remove("is-half");
+      item.classList.add("is-wide");
+      item.dataset.projectMediaLayout = "wide-auto";
+    });
+  };
+
+  pairs.forEach((items) => {
+    if (items.length !== 2) {
+      expandPair(items);
+      return;
+    }
+
+    const images = items.map((item) => item.querySelector("img"));
+    const evaluatePair = () => {
+      const waitingForSource = images.some((image) => image?.dataset.src);
+      const waitingForLoad = images.some((image) => image && !image.complete);
+      if (waitingForSource || waitingForLoad) return;
+
+      if (images.some((image) => !image?.naturalWidth || !image?.naturalHeight)) {
+        expandPair(items);
+        return;
+      }
+
+      const heightRatios = images.map((image) => image.naturalHeight / image.naturalWidth);
+      const ratioDifference = Math.max(...heightRatios) / Math.min(...heightRatios);
+
+      if (ratioDifference > 1.12) {
+        expandPair(items);
+      } else {
+        items.forEach((item) => {
+          item.dataset.projectMediaLayout = "paired";
+        });
+      }
+    };
+
+    images.forEach((image) => {
+      image?.addEventListener("load", evaluatePair, { once: true });
+      image?.addEventListener("error", evaluatePair, { once: true });
+    });
+    evaluatePair();
+  });
+}
+
+function buildProjectTemplate(project, previousProject, nextProject, options = {}) {
+  const isDrawer = options.mode === "drawer";
+  const infoParagraphs = [project.summary, ...(project.detailZh || [])]
+    .filter(Boolean)
+    .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
+    .join("");
+  const services = project.discipline
+    .split("/")
+    .map((service) => service.trim())
+    .filter(Boolean);
+  const serviceMarkup = [...services, "Selected Project Archive"]
+    .filter((service, index, list) => list.indexOf(service) === index)
+    .map((service) => `<li>+ ${escapeHtml(service)}</li>`)
+    .join("");
+  const nextThumbnail =
+    nextProject.images[0] || projectBrowserPreviewOverrides[nextProject.slug];
+
+  return `
+    <article class="project-template-shell" data-project-template-slug="${escapeHtml(project.slug)}">
+      <header
+        class="project-template-header pill-site-header"
+        data-pill-nav-host
+        data-pill-nav-context="${isDrawer ? "project-drawer" : "project"}"
+      ></header>
+
+      <div class="project-template-intro-space" aria-hidden="true"></div>
+
+      <div class="project-template-layout">
+        <aside class="project-template-info">
+          <span class="project-template-section-label">01 / PROJECT INFO</span>
+          <div class="project-template-summary">${infoParagraphs}</div>
+          <ul class="project-template-services">${serviceMarkup}</ul>
+        </aside>
+
+        <div class="project-template-content">
+          <section class="project-template-gallery project-case-gallery" aria-label="${escapeHtml(project.title)} 项目图集">
+            ${buildProjectTemplateMedia(project, { interactive: !isDrawer })}
+          </section>
+
+          <a
+            class="project-template-next"
+            href="./project.html?slug=${encodeURIComponent(nextProject.slug)}"
+            data-project-detail-slug="${escapeHtml(nextProject.slug)}"
+            aria-label="下一个项目：${escapeHtml(nextProject.title)}"
+          >
+            <div class="project-template-next-thumb">
+              <img class="deferred-image" data-src="${nextThumbnail}" alt="" loading="lazy" decoding="async" aria-hidden="true" />
+            </div>
+            <span class="project-template-next-label">NEXT PROJECT</span>
+            <span class="project-template-next-title">${escapeHtml(nextProject.title)}</span>
+          </a>
+        </div>
+      </div>
+
+      <footer class="project-template-footer">
+        <div class="project-template-footer-badges"><span>LI</span><span>GD</span></div>
+        <p>For general enquiries and new projects, contact:<br /><a href="mailto:liulian080936@gmail.com">liulian080936@gmail.com</a></p>
+        <p class="project-template-footer-statement">Independent visual designer / selected works 2022—2026.</p>
+        <div class="project-template-footer-base">
+          <span>© 2026 / LIULIAN PORTFOLIO</span>
+          <a href="./project.html?slug=${encodeURIComponent(previousProject.slug)}" data-project-detail-slug="${escapeHtml(previousProject.slug)}">PREVIOUS / ${escapeHtml(previousProject.title)}</a>
+        </div>
+      </footer>
+    </article>
+  `;
+}
+
 function renderProjectPage() {
   const host = document.querySelector("#projectCaseStudy");
   if (!host) return;
 
-  const manifest = Array.isArray(window.__PROJECT_MANIFEST__) ? window.__PROJECT_MANIFEST__ : [];
-  const manifestMap = new Map(manifest.map((entry) => [entry.slug, entry]));
   const params = new URLSearchParams(window.location.search);
   const requestedSlug = params.get("slug");
-  const fallbackProject = projectCaseSource[0];
-  const baseProject =
-    projectCaseSource.find((entry) => entry.slug === requestedSlug) ||
-    fallbackProject;
-  const archiveProject = manifestMap.get(baseProject.slug);
+  const context = getProjectContext(requestedSlug);
 
-  if (!archiveProject) {
+  if (!context) {
     host.innerHTML = `
       <section class="project-case-empty">
-        <p>Project archive is missing for ${escapeHtml(baseProject.title)}.</p>
+        <p>Project archive is unavailable.</p>
         <a href="./index.html">Back to Works</a>
       </section>
     `;
     return;
   }
 
-  const currentIndex = projectCaseSource.findIndex((entry) => entry.slug === baseProject.slug);
-  const previousProject =
-    projectCaseSource[(currentIndex - 1 + projectCaseSource.length) % projectCaseSource.length];
-  const nextProject =
-    projectCaseSource[(currentIndex + 1) % projectCaseSource.length];
-  const project = { ...baseProject, ...archiveProject };
-  const preservedProjectText = [project.title];
-  const subtitleMarkup = project.subtitle ? `<small>${escapeDisplayText(project.subtitle)}</small>` : "";
-  const titleMarkup = project.slug === "to-see-is-to-believe"
-    ? '<span class="project-case-title-line">TO SEE IS TO</span><span class="project-case-title-line">BELIEVE</span>'
-    : `${escapeHtml(project.title)}${subtitleMarkup}`;
-  const titleAttributes = project.slug === "to-see-is-to-believe" ? ' data-scramble-skip="true"' : "";
-  const detailZhMarkup = renderProjectCopyCard(project.detailZh, preservedProjectText, {
-    className: "project-copy-card-primary",
-  });
-  const detailEnMarkup = renderProjectCopyCard(project.detailEn, preservedProjectText, {
-    label: "Project Overview",
-    className: "project-copy-card-secondary",
-    lowerCase: true,
-  });
+  const { project, previousProject, nextProject } = context;
 
   activeProjectCase = project;
   document.title = `LIULIAN ${project.title}`;
   document.body.style.setProperty("--project-accent", project.accent);
   document.body.setAttribute("data-project-slug", project.slug);
+  host.innerHTML = buildProjectTemplate(project, previousProject, nextProject, { mode: "page" });
+  initPillNav(host);
+  harmonizeProjectMediaPairs(host);
+  queueDeferredImages(host);
 
-  host.innerHTML = `
-    <section class="project-case-shell">
-      <section class="project-case-hero" aria-label="${escapeHtml(project.title)} 项目介绍">
-        <div class="project-case-kicker">
-          <span>Selected Case Study</span>
-          <a class="project-case-back" href="./index.html">Back to Works</a>
-        </div>
-        <div class="project-case-heading is-numberless">
-          <div class="project-case-title-wrap">
-            <h1${titleAttributes}>${titleMarkup}</h1>
-          </div>
-        </div>
-        <div class="project-case-meta">
-          <div class="project-case-meta-block">
-            <span>Discipline</span>
-            <p>${escapeHtml(project.discipline.toLowerCase())}</p>
-          </div>
-          <div class="project-case-meta-block">
-            <span>Frames</span>
-            <p>selected archive images</p>
-          </div>
-          <div class="project-case-meta-block">
-            <span>Author</span>
-            <p>liulian portfolio</p>
-          </div>
-        </div>
-        ${detailZhMarkup ? `<div class="project-case-overview-copy">${detailZhMarkup}</div>` : ""}
-        ${detailEnMarkup ? `<div class="project-case-overview-note">${detailEnMarkup}</div>` : ""}
-      </section>
+  if ("scrollRestoration" in window.history) {
+    window.history.scrollRestoration = "manual";
+  }
 
-      <figure
-        class="project-case-lead project-image-trigger"
-        tabindex="0"
-        role="button"
-        aria-haspopup="dialog"
-        aria-label="Open ${escapeHtml(project.title)} project image"
-        data-project-image-index="0"
-      >
-        <div class="project-case-lead-media">
-          <img src="${project.images[0]}" alt="${escapeHtml(project.title)} lead image" loading="eager" decoding="async" fetchpriority="high" />
-        </div>
-      </figure>
+  const resetPagePosition = () => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  };
+  const firstProjectImage = host.querySelector('[data-project-image-index="0"] img');
 
-      <section class="project-case-gallery" aria-label="${escapeHtml(project.title)} 项目图集">
-      </section>
+  resetPagePosition();
+  window.requestAnimationFrame(() => {
+    resetPagePosition();
+    window.requestAnimationFrame(resetPagePosition);
+  });
 
-      <footer class="project-case-footer">
-        <a class="project-case-nav-link" href="./project.html?slug=${previousProject.slug}">
-          <span>Previous</span>
-          <strong>${escapeHtml(previousProject.title)}</strong>
-        </a>
-        <a class="project-case-nav-center" href="./index.html">All Works</a>
-        <a class="project-case-nav-link project-case-nav-link-next" href="./project.html?slug=${nextProject.slug}">
-          <span>Next</span>
-          <strong>${escapeHtml(nextProject.title)}</strong>
-        </a>
-      </footer>
-    </section>
-  `;
-
-  const gallery = host.querySelector(".project-case-gallery");
-  scheduleNonCriticalTask(() => {
-    if (!gallery || activeProjectCase?.slug !== project.slug) return;
-    gallery.innerHTML = buildProjectGallery(project);
-    queueDeferredImages(gallery);
-  }, 180);
+  if (firstProjectImage && !firstProjectImage.complete) {
+    firstProjectImage.addEventListener("load", resetPagePosition, { once: true });
+  }
 }
 
 function initProjectDrawer() {
@@ -3478,6 +4426,199 @@ function initProjectDrawer() {
   });
 }
 
+function initProjectDetailDrawer() {
+  const drawer = document.querySelector("#projectDetailDrawer");
+  const backdrop = document.querySelector("#projectDetailBackdrop");
+  const scrollHost = document.querySelector("#projectDetailScroll");
+  const contentHost = document.querySelector("#projectDetailDrawerHost");
+
+  if (!drawer || !backdrop || !scrollHost || !contentHost) return;
+
+  let closeTimer = 0;
+  let lastActiveElement = null;
+
+  const resetScrollPosition = () => {
+    scrollHost.scrollTop = 0;
+    scrollHost.scrollLeft = 0;
+    scrollHost.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  };
+
+  const keepFirstFrameAtStart = (projectSlug) => {
+    resetScrollPosition();
+    window.requestAnimationFrame(() => {
+      if (drawer.dataset.projectSlug !== projectSlug) return;
+      resetScrollPosition();
+      window.requestAnimationFrame(() => {
+        if (drawer.dataset.projectSlug === projectSlug) {
+          resetScrollPosition();
+        }
+      });
+    });
+  };
+
+  const renderProject = (slug) => {
+    const context = getProjectContext(slug);
+    if (!context) return false;
+
+    const { project, previousProject, nextProject } = context;
+    drawer.dataset.projectSlug = project.slug;
+    drawer.style.setProperty("--project-accent", project.accent);
+    contentHost.innerHTML = buildProjectTemplate(project, previousProject, nextProject, {
+      mode: "drawer",
+    });
+    initPillNav(contentHost);
+    harmonizeProjectMediaPairs(contentHost);
+    keepFirstFrameAtStart(project.slug);
+    queueDeferredImages(contentHost);
+
+    const firstProjectImage = contentHost.querySelector('[data-project-image-index="0"] img');
+    if (firstProjectImage && !firstProjectImage.complete) {
+      firstProjectImage.addEventListener(
+        "load",
+        () => {
+          if (drawer.dataset.projectSlug === project.slug) {
+            keepFirstFrameAtStart(project.slug);
+          }
+        },
+        { once: true },
+      );
+    }
+
+    return true;
+  };
+
+  const openDrawer = (slug, source) => {
+    if (!renderProject(slug)) return;
+
+    window.clearTimeout(closeTimer);
+    lastActiveElement = source instanceof HTMLElement ? source : document.activeElement;
+
+    const projectBrowserClose = document.querySelector("#projectBrowserClose");
+    const projectBrowserDrawer = document.querySelector("#projectBrowserDrawer");
+    if (projectBrowserClose && projectBrowserDrawer && !projectBrowserDrawer.hidden) {
+      projectBrowserClose.click();
+    }
+
+    if (drawer.hidden) {
+      drawer.hidden = false;
+      backdrop.hidden = false;
+    }
+
+    window.requestAnimationFrame(() => {
+      drawer.classList.add("is-open");
+      backdrop.classList.add("is-open");
+      drawer.setAttribute("aria-hidden", "false");
+      document.body.classList.add("project-detail-open");
+      keepFirstFrameAtStart(drawer.dataset.projectSlug);
+
+      const closeButton = contentHost.querySelector(".project-detail-close");
+      closeButton?.focus?.({ preventScroll: true });
+    });
+  };
+
+  const closeDrawer = () => {
+    if (drawer.hidden) return;
+
+    drawer.classList.remove("is-open");
+    backdrop.classList.remove("is-open");
+    drawer.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("project-detail-open");
+
+    window.clearTimeout(closeTimer);
+    closeTimer = window.setTimeout(() => {
+      drawer.hidden = true;
+      backdrop.hidden = true;
+      contentHost.innerHTML = "";
+      drawer.removeAttribute("data-project-slug");
+      lastActiveElement?.focus?.({ preventScroll: true });
+    }, 560);
+  };
+
+  document.addEventListener("click", (event) => {
+    if (event.defaultPrevented || event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+    const link = event.target.closest('a[href*="project.html?slug="]');
+    if (!link || link.closest("#projectDetailDrawer")) return;
+
+    const url = new URL(link.href, window.location.href);
+    const slug = url.searchParams.get("slug");
+    if (!slug) return;
+
+    event.preventDefault();
+    openDrawer(slug, link);
+  });
+
+  contentHost.addEventListener("click", (event) => {
+    const projectsLink = event.target.closest(".project-detail-projects");
+    if (projectsLink) {
+      event.preventDefault();
+      const projectsHref = projectsLink.href;
+      closeDrawer();
+
+      window.setTimeout(() => {
+        const projectBrowserTrigger = document.querySelector("#projectBrowserTrigger");
+        const projectBrowserDrawer = document.querySelector("#projectBrowserDrawer");
+
+        if (!projectBrowserTrigger || !projectBrowserDrawer) {
+          window.location.href = projectsHref;
+          return;
+        }
+
+        if (projectBrowserDrawer.hidden) {
+          projectBrowserTrigger.click();
+        }
+        if (window.location.hash !== "#projects") {
+          window.history.pushState(null, "", "#projects");
+        }
+      }, 580);
+      return;
+    }
+
+    const closeButton = event.target.closest(".project-detail-close");
+    if (closeButton) {
+      event.preventDefault();
+      closeDrawer();
+      return;
+    }
+
+    const projectLink = event.target.closest("[data-project-detail-slug]");
+    if (!projectLink) return;
+
+    event.preventDefault();
+    renderProject(projectLink.dataset.projectDetailSlug);
+  });
+
+  backdrop.addEventListener("click", closeDrawer);
+
+  window.addEventListener("keydown", (event) => {
+    if (drawer.hidden) return;
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeDrawer();
+      return;
+    }
+
+    if (event.key !== "Tab") return;
+
+    const focusable = Array.from(
+      drawer.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'),
+    ).filter((element) => !element.hidden && element.getClientRects().length);
+    if (!focusable.length) return;
+
+    const first = focusable[0];
+    const last = focusable.at(-1);
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+}
+
 function initTargetCursor() {
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   if (!window.matchMedia("(pointer: fine)").matches) return;
@@ -3685,10 +4826,12 @@ function initTargetCursor() {
 function initPage() {
   const page = document.body?.dataset.page;
 
+  initPillNav();
   syncSiteHeaderHeight();
 
   if (page === "posters") {
     renderPosterPage();
+    initFirstLoadDecryptedText();
     scheduleNonCriticalTask(() => {
       initPosterDrawer();
       initPosterPixelHover();
@@ -3699,6 +4842,7 @@ function initPage() {
 
   if (page === "project") {
     renderProjectPage();
+    initFirstLoadDecryptedText();
     scheduleNonCriticalTask(() => {
       initProjectDrawer();
       initTargetCursor();
@@ -3707,11 +4851,16 @@ function initPage() {
   }
 
   if (page === "home") {
+    initHomePosterMarquee();
     initHomeLoadingScreen();
+    initFirstLoadDecryptedText({
+      waitForHomeReveal: Boolean(document.querySelector("#homeLoadingScreen")),
+    });
     initHomeProjectMediaRatios();
     initFooterLinkPreviews();
     initAboutDrawer();
     initProjectBrowserDrawer();
+    initProjectDetailDrawer();
     scheduleNonCriticalTask(() => {
       initHomeProjectPixelHover();
       initTargetCursor();
@@ -3722,6 +4871,7 @@ function initPage() {
   scheduleNonCriticalTask(() => {
     initTargetCursor();
   }, 400);
+  initFirstLoadDecryptedText();
 }
 
 initPage();
