@@ -1587,8 +1587,8 @@ body[data-page="home"] .home-project-list-media img {
 }
 
 @media (pointer: fine) {
-  body[data-page="home"] .editorial-card:hover,
-  body[data-page="home"] .editorial-card:focus-within {
+  body[data-page="home"] .editorial-card:not(.posters-band):hover,
+  body[data-page="home"] .editorial-card:not(.posters-band):focus-within {
     transform: translateY(-6px);
   }
 

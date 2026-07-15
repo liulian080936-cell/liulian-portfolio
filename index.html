@@ -32,7 +32,7 @@
         }
       })();
     </script>
-    <link rel="stylesheet" href="./styles.css?v=20260715q" />
+    <link rel="stylesheet" href="./styles.css?v=20260715u" />
   </head>
   <body data-page="home">
     <div
@@ -52,7 +52,8 @@
               id="homeLoadingVideo"
               muted
               playsinline
-              preload="auto"
+              preload="none"
+              poster="./assets/durian-icon.png"
               aria-hidden="true"
             >
               <source src="./assets/loading/home-loader.mp4" type="video/mp4" />
@@ -140,13 +141,13 @@
 
             <a class="cover-cloud-card" href="./project.html?slug=nomokids" aria-label="查看 NOMOKIDS 项目详情">
               <div class="cover-cloud-card-media">
-                <img src="./assets/home/frame-covers/nomokids.png" alt="NOMOKIDS 封面" loading="eager" fetchpriority="high" decoding="async" />
+                <img src="./assets/home/frame-covers/nomokids.png" alt="NOMOKIDS 封面" loading="lazy" fetchpriority="low" decoding="async" />
               </div>
             </a>
 
             <a class="cover-cloud-card" href="./project.html?slug=shake-coffee" aria-label="查看 摇coffee 项目详情">
               <div class="cover-cloud-card-media">
-                <img src="./assets/home/frame-covers/shake-coffee.png" alt="摇coffee封面" loading="eager" fetchpriority="high" decoding="async" />
+                <img src="./assets/home/frame-covers/shake-coffee.png" alt="摇coffee封面" loading="lazy" fetchpriority="low" decoding="async" />
               </div>
             </a>
 
@@ -228,7 +229,7 @@
       <footer class="portfolio-footer" aria-label="页尾联系信息">
         <div class="portfolio-footer-top">
           <div class="portfolio-footer-mark" aria-label="LIULIAN 榴莲标志">
-            <img src="./assets/durian-footer.png" alt="LIULIAN 榴莲" loading="eager" decoding="async" />
+            <img src="./assets/durian-footer.png" alt="LIULIAN 榴莲" loading="lazy" fetchpriority="low" decoding="async" />
           </div>
 
           <p class="portfolio-footer-statement">
@@ -373,28 +374,28 @@
         <section class="about-drawer-gallery-pane" aria-label="About 项目拼贴">
           <div class="about-drawer-gallery">
             <figure class="about-drawer-card about-drawer-card-primary">
-              <img src="./assets/about/throbbing-26.jpg" alt="Throbbing project billboard installation" decoding="async" />
+              <img class="deferred-image" data-src="./assets/about/throbbing-26.jpg" alt="Throbbing project billboard installation" loading="lazy" fetchpriority="low" decoding="async" />
             </figure>
             <figure class="about-drawer-card about-drawer-card-secondary">
-              <img src="./assets/about/nomokids-0.png" alt="NOMOKIDS child portrait" decoding="async" />
+              <img class="deferred-image" data-src="./assets/about/nomokids-0.png" alt="NOMOKIDS child portrait" loading="lazy" fetchpriority="low" decoding="async" />
             </figure>
             <figure class="about-drawer-card about-drawer-card-tertiary">
-              <img src="./assets/about/shake-coffee-1.webp" alt="Shake Coffee storefront" decoding="async" />
+              <img class="deferred-image" data-src="./assets/about/shake-coffee-1.webp" alt="Shake Coffee storefront" loading="lazy" fetchpriority="low" decoding="async" />
             </figure>
             <figure class="about-drawer-card about-drawer-card-quaternary">
-              <img src="./assets/about/newlife-3.jpg" alt="New Life fitness visual" decoding="async" />
+              <img class="deferred-image" data-src="./assets/about/newlife-3.jpg" alt="New Life fitness visual" loading="lazy" fetchpriority="low" decoding="async" />
             </figure>
             <figure class="about-drawer-card about-drawer-card-quinary">
-              <img src="./assets/about/smoo-29.jpg" alt="SMOO MARKET storefront" decoding="async" />
+              <img class="deferred-image" data-src="./assets/about/smoo-29.jpg" alt="SMOO MARKET storefront" loading="lazy" fetchpriority="low" decoding="async" />
             </figure>
             <figure class="about-drawer-card about-drawer-card-senary">
-              <img src="./assets/about/fechoes-14.jpg" alt="FECHOES festival poster installation" decoding="async" />
+              <img class="deferred-image" data-src="./assets/about/fechoes-14.jpg" alt="FECHOES festival poster installation" loading="lazy" fetchpriority="low" decoding="async" />
             </figure>
             <figure class="about-drawer-card about-drawer-card-septenary">
-              <img src="./assets/about/lumos-10.png" alt="Lumos helmet campaign frame" decoding="async" />
+              <img class="deferred-image" data-src="./assets/about/lumos-10.png" alt="Lumos helmet campaign frame" loading="lazy" fetchpriority="low" decoding="async" />
             </figure>
             <figure class="about-drawer-card about-drawer-card-octonary">
-              <img src="./assets/about/fivebook-14.jpg" alt="Fivebook poster display" decoding="async" />
+              <img class="deferred-image" data-src="./assets/about/fivebook-14.jpg" alt="Fivebook poster display" loading="lazy" fetchpriority="low" decoding="async" />
             </figure>
           </div>
         </section>
@@ -467,6 +468,6 @@
 
     <script src="./assets/projects/manifest.js"></script>
     <script src="./node_modules/gsap/dist/gsap.min.js"></script>
-    <script src="./script.js?v=20260715q"></script>
+    <script src="./script.js?v=20260715u"></script>
   </body>
 </html>

@@ -754,9 +754,28 @@ function initHomeLoadingScreen() {
   const body = document.body;
   const startTime = performance.now();
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const hasVideo = video instanceof HTMLVideoElement;
+  const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  const constrainedNetwork = Boolean(connection?.saveData)
+    || /(^|-)2g$/i.test(connection?.effectiveType || "");
+  const constrainedDevice = Number.isFinite(navigator.deviceMemory)
+    && navigator.deviceMemory <= 2;
+  const hasVideo = video instanceof HTMLVideoElement
+    && !constrainedNetwork
+    && !constrainedDevice
+    && !prefersReducedMotion;
+
+  if (video instanceof HTMLVideoElement && !hasVideo) {
+    video.pause();
+    video.removeAttribute("src");
+    video.querySelectorAll("source").forEach((source) => source.removeAttribute("src"));
+    try {
+      video.load();
+    } catch {
+      // The poster remains visible when decorative video playback is unavailable.
+    }
+  }
   const minDuration = prefersReducedMotion ? 900 : 1500;
-  const maxDuration = 7000;
+  const maxDuration = 4200;
   const preCompleteCap = prefersReducedMotion ? 95 : 97;
   const waitingForVideoCap = prefersReducedMotion ? 24 : 32;
   const preVideoDisplayCap = prefersReducedMotion ? 5 : 4;
@@ -774,7 +793,7 @@ function initHomeLoadingScreen() {
     document.querySelectorAll(
       [
         "body[data-page='home'] .posters-band-strip .poster-thumb:nth-child(-n+2) img",
-        "body[data-page='home'] .cover-cloud-reference .cover-cloud-card:nth-child(-n+4) img",
+        "body[data-page='home'] .cover-cloud-reference .cover-cloud-card:nth-child(-n+2) img",
       ].join(", "),
     ),
   );
@@ -786,13 +805,14 @@ function initHomeLoadingScreen() {
   let loadedAssetCount = 0;
   let actualProgress = hasVideo ? 1 : trackedAssetCount ? 6 : 22;
   let displayedProgress = 1;
-  let pageLoaded = document.readyState === "complete";
+  let pageLoaded = document.readyState !== "loading";
   let finishRequested = false;
   let exitTriggered = false;
   let completionHoldStart = null;
   let lastAnimationTime = startTime;
   let videoPlaybackObserved = !hasVideo;
   let videoSequenceComplete = !hasVideo;
+  let safetyExitTimer = 0;
 
   body.classList.add("is-home-loading");
   body.setAttribute("aria-busy", "true");
@@ -895,17 +915,26 @@ function initHomeLoadingScreen() {
       image.fetchPriority = "high";
     }
 
-    if (image.complete) {
+    let assetHandled = false;
+    let assetFallbackTimer = 0;
+    const resolveTrackedImage = () => {
+      if (assetHandled) return;
+      assetHandled = true;
+      window.clearTimeout(assetFallbackTimer);
       markAssetLoaded();
+    };
+    assetFallbackTimer = window.setTimeout(resolveTrackedImage, 2200);
+
+    if (image.complete) {
+      resolveTrackedImage();
       return;
     }
 
-    image.addEventListener("load", markAssetLoaded, { once: true });
-    image.addEventListener("error", markAssetLoaded, { once: true });
+    image.addEventListener("load", resolveTrackedImage, { once: true });
+    image.addEventListener("error", resolveTrackedImage, { once: true });
   });
 
   if (hasVideo) {
-    trackedAssetCount += 1;
     video.loop = false;
     video.defaultPlaybackRate = videoPlaybackRate;
     video.playbackRate = videoPlaybackRate;
@@ -931,7 +960,7 @@ function initHomeLoadingScreen() {
         videoSequenceComplete = true;
       }
 
-      markAssetLoaded();
+      refreshActualProgress();
     };
 
     const syncVideoTiming = () => {
@@ -1038,7 +1067,7 @@ function initHomeLoadingScreen() {
       return;
     }
 
-    if (pageLoaded && assetsReady && videoSequenceComplete && elapsed >= minDuration) {
+    if (pageLoaded && assetsReady && elapsed >= minDuration) {
       finishRequested = true;
       actualProgress = 100;
       return;
@@ -1054,6 +1083,7 @@ function initHomeLoadingScreen() {
     if (exitTriggered) return;
 
     exitTriggered = true;
+    window.clearTimeout(safetyExitTimer);
     updateLabel(100);
     loader.classList.add("is-exiting");
     body.classList.remove("is-home-loading");
@@ -1067,6 +1097,18 @@ function initHomeLoadingScreen() {
       loader.remove();
     }, exitDuration);
   };
+
+  safetyExitTimer = window.setTimeout(() => {
+    if (exitTriggered) return;
+
+    finishRequested = true;
+    actualProgress = 100;
+    displayedProgress = 100;
+    value.textContent = formatCountUpValue(100);
+    updateLabel(100);
+    loader.classList.add("is-complete");
+    window.setTimeout(exitLoader, 120);
+  }, maxDuration + 600);
 
   const getDisplayTarget = (now) => {
     if (finishRequested) return actualProgress;
@@ -1133,8 +1175,8 @@ function initHomeLoadingScreen() {
   };
 
   if (!pageLoaded) {
-    window.addEventListener(
-      "load",
+    document.addEventListener(
+      "DOMContentLoaded",
       () => {
         pageLoaded = true;
         refreshActualProgress();
@@ -1617,7 +1659,26 @@ function initHomePosterMarquee() {
   `;
 
   track.innerHTML = `${renderGroup()}${renderGroup(true)}`;
-  queueDeferredImages(track);
+  const marqueeDeferredImages = Array.from(track.querySelectorAll("img[data-src]"));
+  if ("IntersectionObserver" in window) {
+    const marqueeImageObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          marqueeImageObserver.unobserve(entry.target);
+          revealDeferredImage(entry.target);
+        });
+      },
+      {
+        root: strip,
+        rootMargin: "0px 1200px",
+        threshold: 0.01,
+      },
+    );
+    marqueeDeferredImages.forEach((image) => marqueeImageObserver.observe(image));
+  } else {
+    marqueeDeferredImages.forEach(revealDeferredImage);
+  }
 
   const cards = Array.from(track.querySelectorAll(".poster-thumb"));
   const firstGroup = track.querySelector(".poster-band-loop-group");
@@ -1626,6 +1687,7 @@ function initHomePosterMarquee() {
   let inView = true;
   let previousTime = performance.now();
   let pixelRemainder = 0;
+  let animationFrame = 0;
 
   const syncSelection = () => {
     cards.forEach((card) => {
@@ -1656,6 +1718,7 @@ function initHomePosterMarquee() {
       paused = true;
     }
     syncSelection();
+    if (!paused) scheduleTick();
   });
 
   const getLoopWidth = () => {
@@ -1673,6 +1736,7 @@ function initHomePosterMarquee() {
   };
 
   const tick = (time) => {
+    animationFrame = 0;
     const elapsed = Math.min(64, time - previousTime);
     previousTime = time;
 
@@ -1686,15 +1750,22 @@ function initHomePosterMarquee() {
         pixelRemainder -= wholePixels;
         normalizePosition();
       }
-    }
 
-    window.requestAnimationFrame(tick);
+      scheduleTick();
+    }
+  };
+
+  const scheduleTick = () => {
+    if (animationFrame || paused || !inView || document.hidden) return;
+    previousTime = performance.now();
+    animationFrame = window.requestAnimationFrame(tick);
   };
 
   if ("IntersectionObserver" in window) {
     const observer = new IntersectionObserver(
       ([entry]) => {
         inView = Boolean(entry?.isIntersecting);
+        if (inView) scheduleTick();
       },
       { threshold: 0.01 },
     );
@@ -1702,8 +1773,9 @@ function initHomePosterMarquee() {
   }
 
   strip.addEventListener("scroll", normalizePosition, { passive: true });
+  document.addEventListener("visibilitychange", scheduleTick);
   syncSelection();
-  window.requestAnimationFrame(tick);
+  scheduleTick();
 }
 
 function renderPosterGroup(group, groupIndex) {
@@ -1733,13 +1805,13 @@ function renderPosterGroup(group, groupIndex) {
                     .map(
                       (image, index) => `
                         <span class="poster-stack-layer" style="--stack-layer:${stackLayers.length - index};">
-                          <img class="deferred-image" data-src="${image}" alt="" loading="lazy" decoding="async" aria-hidden="true" />
+                          <img src="${poster.cover}" data-stack-src="${image}" alt="" loading="lazy" fetchpriority="low" decoding="async" aria-hidden="true" />
                         </span>
                       `,
                     )
                     .join("")}
                   <div class="card-media">
-                    <img class="deferred-image" data-src="${poster.cover}" alt="${poster.alt}" loading="lazy" decoding="async" />
+                    <img class="deferred-image" data-src="${poster.cover}" alt="${poster.alt}" loading="lazy" fetchpriority="low" decoding="async" />
                   </div>
                   <canvas class="poster-pixel-canvas" aria-hidden="true"></canvas>
                   ${
@@ -1787,6 +1859,19 @@ function renderPosterPage() {
   }
 
   layout.innerHTML = "";
+
+  const hydratePosterStackImages = (card) => {
+    card?.querySelectorAll("img[data-stack-src]").forEach((image) => {
+      image.src = image.dataset.stackSrc;
+      image.removeAttribute("data-stack-src");
+    });
+  };
+  layout.addEventListener("pointerover", (event) => {
+    hydratePosterStackImages(event.target.closest(".poster-card"));
+  });
+  layout.addEventListener("focusin", (event) => {
+    hydratePosterStackImages(event.target.closest(".poster-card"));
+  });
 
   let nextGroupIndex = 0;
   const renderNextGroup = () => {
@@ -3599,6 +3684,7 @@ function initAboutDrawer() {
     if (drawer.hidden) {
       drawer.hidden = false;
     }
+    queueDeferredImages(drawer);
 
     drawer.scrollTop = 0;
     copyPane.scrollTop = 0;
@@ -3719,11 +3805,21 @@ function initProjectBrowserDrawer() {
     localTime.textContent = `${localTimeFormatter.format(now)} SHANGHAI`;
     localTime.dateTime = now.toISOString();
   };
-  updateLocalTime();
-  window.setInterval(updateLocalTime, 1000);
-
   let closeTimer = 0;
   let lastActiveElement = null;
+  let localTimeTimer = 0;
+
+  const startLocalTime = () => {
+    updateLocalTime();
+    if (!localTimeTimer) {
+      localTimeTimer = window.setInterval(updateLocalTime, 1000);
+    }
+  };
+
+  const stopLocalTime = () => {
+    window.clearInterval(localTimeTimer);
+    localTimeTimer = 0;
+  };
 
   const openDrawer = () => {
     window.clearTimeout(closeTimer);
@@ -3735,7 +3831,7 @@ function initProjectBrowserDrawer() {
     }
 
     shell.scrollTo({ top: 0, left: 0, behavior: "auto" });
-    updateLocalTime();
+    startLocalTime();
 
     window.requestAnimationFrame(() => {
       drawer.classList.add("is-open");
@@ -3762,6 +3858,7 @@ function initProjectBrowserDrawer() {
     trigger.classList.remove("is-active");
     document.body.classList.remove("project-browser-open");
     grid.querySelectorAll("video").forEach((video) => video.pause());
+    stopLocalTime();
 
     window.clearTimeout(closeTimer);
     closeTimer = window.setTimeout(() => {
