@@ -4338,8 +4338,8 @@ function initProjectDrawer() {
     size.textContent = "";
     location.textContent = stripDisplayNumbers(project.discipline, [project.title]);
     category.textContent = "selected image";
-    details.textContent = activePoster.details;
-    description.textContent = `Selected poster from the ${activePoster.year} archive.`;
+    details.textContent = "";
+    description.textContent = project.summary || "";
     credits.textContent = "Visual design / LIULIAN";
     awards.textContent = "";
     author.textContent = "liulian";
