@@ -5429,6 +5429,7 @@ body[data-page="posters"] .site-header.pill-site-header {
   min-height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
+  overflow-anchor: none;
   overscroll-behavior: contain;
 }
 
@@ -5519,13 +5520,20 @@ body[data-page="posters"] .site-header.pill-site-header {
 
 .poster-case-drawer .poster-drawer-stage {
   display: block;
+  width: 100%;
   min-height: 0;
+  overflow: visible;
+  padding: 0;
+}
+
+.poster-case-drawer.is-project-drawer .poster-drawer-stage {
   overflow: visible;
   padding: 0;
 }
 
 .poster-case-additional-images {
   display: grid;
+  width: 100%;
   grid-template-columns: 1fr;
   gap: 1px;
   margin-top: 1px;
@@ -5541,10 +5549,10 @@ body[data-page="posters"] .site-header.pill-site-header {
 
 .poster-case-additional-item img {
   display: block;
-  width: auto;
-  max-width: 100%;
+  width: 100%;
+  max-width: none;
   height: auto;
-  max-height: calc(100dvh - 72px);
+  max-height: none;
   margin-inline: auto;
   object-fit: contain;
   object-position: top center;
@@ -5572,10 +5580,10 @@ body[data-page="posters"] .poster-case-drawer.is-project-drawer .poster-drawer-f
 .poster-case-drawer .poster-drawer-figure > img,
 body[data-page="posters"] .poster-case-drawer.is-project-drawer .poster-drawer-figure > img {
   display: block;
-  width: auto;
-  max-width: 100%;
+  width: 100%;
+  max-width: none;
   height: auto;
-  max-height: calc(100dvh - 72px);
+  max-height: none;
   margin-inline: auto;
   object-fit: contain;
   object-position: top center;
@@ -5675,5 +5683,77 @@ body[data-page="project"] .project-template-info,
   .poster-case-drawer .poster-case-info {
     position: static;
     max-width: none;
+  }
+}
+
+/* Project and poster details share one partial-height drawer below the page navigation. */
+:root {
+  --detail-drawer-top: clamp(132px, 17svh, 176px);
+}
+
+body.project-detail-open > .site-header.pill-site-header {
+  z-index: 180;
+}
+
+body.poster-drawer-open > .site-header.pill-site-header {
+  z-index: 90;
+}
+
+.project-detail-backdrop,
+.poster-drawer-backdrop {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(16px) saturate(82%);
+  -webkit-backdrop-filter: blur(16px) saturate(82%);
+}
+
+.project-detail-drawer,
+.poster-case-drawer {
+  inset: var(--detail-drawer-top) 0 0;
+  width: 100%;
+  height: auto;
+  border-top: 1px solid rgba(15, 15, 15, 0.08);
+}
+
+.project-detail-drawer:focus,
+.poster-case-drawer:focus {
+  outline: none;
+}
+
+.project-detail-drawer .project-template-shell,
+.poster-case-drawer .project-template-shell {
+  min-height: 100%;
+}
+
+.project-detail-drawer .project-template-header,
+.poster-case-drawer .project-template-header {
+  display: none;
+}
+
+.project-detail-drawer .project-template-intro-space,
+.poster-case-drawer .project-template-intro-space {
+  height: clamp(150px, 22svh, 190px);
+}
+
+@media (min-width: 721px) {
+  .project-detail-drawer .project-template-content {
+    width: min(78%, 980px);
+    justify-self: center;
+  }
+}
+
+@media (max-width: 720px) {
+  :root {
+    --detail-drawer-top: max(88px, calc(var(--site-header-height) + 10px));
+  }
+
+  .project-detail-drawer .project-template-intro-space,
+  .poster-case-drawer .project-template-intro-space {
+    height: 104px;
+  }
+
+  .project-detail-backdrop,
+  .poster-drawer-backdrop {
+    backdrop-filter: blur(10px) saturate(86%);
+    -webkit-backdrop-filter: blur(10px) saturate(86%);
   }
 }

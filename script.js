@@ -756,7 +756,7 @@ function initHomeLoadingScreen() {
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const hasVideo = video instanceof HTMLVideoElement;
   const minDuration = prefersReducedMotion ? 900 : 1500;
-  const maxDuration = 4200;
+  const maxDuration = 7000;
   const preCompleteCap = prefersReducedMotion ? 95 : 97;
   const waitingForVideoCap = prefersReducedMotion ? 24 : 32;
   const preVideoDisplayCap = prefersReducedMotion ? 5 : 4;
@@ -774,7 +774,7 @@ function initHomeLoadingScreen() {
     document.querySelectorAll(
       [
         "body[data-page='home'] .posters-band-strip .poster-thumb:nth-child(-n+2) img",
-        "body[data-page='home'] .cover-cloud-reference .cover-cloud-card:nth-child(-n+2) img",
+        "body[data-page='home'] .cover-cloud-reference .cover-cloud-card:nth-child(-n+4) img",
       ].join(", "),
     ),
   );
@@ -786,14 +786,13 @@ function initHomeLoadingScreen() {
   let loadedAssetCount = 0;
   let actualProgress = hasVideo ? 1 : trackedAssetCount ? 6 : 22;
   let displayedProgress = 1;
-  let pageLoaded = document.readyState !== "loading";
+  let pageLoaded = document.readyState === "complete";
   let finishRequested = false;
   let exitTriggered = false;
   let completionHoldStart = null;
   let lastAnimationTime = startTime;
   let videoPlaybackObserved = !hasVideo;
   let videoSequenceComplete = !hasVideo;
-  let safetyExitTimer = 0;
 
   body.classList.add("is-home-loading");
   body.setAttribute("aria-busy", "true");
@@ -896,26 +895,17 @@ function initHomeLoadingScreen() {
       image.fetchPriority = "high";
     }
 
-    let assetHandled = false;
-    let assetFallbackTimer = 0;
-    const resolveTrackedImage = () => {
-      if (assetHandled) return;
-      assetHandled = true;
-      window.clearTimeout(assetFallbackTimer);
-      markAssetLoaded();
-    };
-    assetFallbackTimer = window.setTimeout(resolveTrackedImage, 2200);
-
     if (image.complete) {
-      resolveTrackedImage();
+      markAssetLoaded();
       return;
     }
 
-    image.addEventListener("load", resolveTrackedImage, { once: true });
-    image.addEventListener("error", resolveTrackedImage, { once: true });
+    image.addEventListener("load", markAssetLoaded, { once: true });
+    image.addEventListener("error", markAssetLoaded, { once: true });
   });
 
   if (hasVideo) {
+    trackedAssetCount += 1;
     video.loop = false;
     video.defaultPlaybackRate = videoPlaybackRate;
     video.playbackRate = videoPlaybackRate;
@@ -941,7 +931,7 @@ function initHomeLoadingScreen() {
         videoSequenceComplete = true;
       }
 
-      refreshActualProgress();
+      markAssetLoaded();
     };
 
     const syncVideoTiming = () => {
@@ -1048,7 +1038,7 @@ function initHomeLoadingScreen() {
       return;
     }
 
-    if (pageLoaded && assetsReady && elapsed >= minDuration) {
+    if (pageLoaded && assetsReady && videoSequenceComplete && elapsed >= minDuration) {
       finishRequested = true;
       actualProgress = 100;
       return;
@@ -1064,7 +1054,6 @@ function initHomeLoadingScreen() {
     if (exitTriggered) return;
 
     exitTriggered = true;
-    window.clearTimeout(safetyExitTimer);
     updateLabel(100);
     loader.classList.add("is-exiting");
     body.classList.remove("is-home-loading");
@@ -1078,18 +1067,6 @@ function initHomeLoadingScreen() {
       loader.remove();
     }, exitDuration);
   };
-
-  safetyExitTimer = window.setTimeout(() => {
-    if (exitTriggered) return;
-
-    finishRequested = true;
-    actualProgress = 100;
-    displayedProgress = 100;
-    value.textContent = formatCountUpValue(100);
-    updateLabel(100);
-    loader.classList.add("is-complete");
-    window.setTimeout(exitLoader, 120);
-  }, maxDuration + 600);
 
   const getDisplayTarget = (now) => {
     if (finishRequested) return actualProgress;
@@ -1156,8 +1133,8 @@ function initHomeLoadingScreen() {
   };
 
   if (!pageLoaded) {
-    document.addEventListener(
-      "DOMContentLoaded",
+    window.addEventListener(
+      "load",
       () => {
         pageLoaded = true;
         refreshActualProgress();
@@ -1942,6 +1919,7 @@ function initPosterDrawer() {
   let hideDrawerTimer = 0;
   let edgeWheelDelta = 0;
   let edgeWheelLockUntil = 0;
+  let resetPositionTimer = 0;
 
   const clearHideTimer = () => {
     if (!hideDrawerTimer) return;
@@ -1980,6 +1958,18 @@ function initPosterDrawer() {
     scrollHost.scrollTop = 0;
     scrollHost.scrollLeft = 0;
     edgeWheelDelta = 0;
+  };
+
+  const keepDrawerAtStart = () => {
+    window.clearTimeout(resetPositionTimer);
+    resetStagePosition();
+
+    window.requestAnimationFrame(() => {
+      resetStagePosition();
+      window.requestAnimationFrame(resetStagePosition);
+    });
+
+    resetPositionTimer = window.setTimeout(resetStagePosition, 160);
   };
 
   const syncImageFacts = () => {
@@ -2041,11 +2031,10 @@ function initPosterDrawer() {
   const renderDrawerPoster = () => {
     if (!activePoster) return;
 
+    activeImageIndex = 0;
     const activeItem = getActivePosterItem();
     if (!activeItem) return;
 
-    resetStagePosition();
-    activeImageIndex = 0;
     image.src = activePoster.images[0];
     image.alt = buildImageAlt(activePoster, 0);
     additionalImages.innerHTML = activePoster.images
@@ -2082,6 +2071,7 @@ function initPosterDrawer() {
     footer.textContent = "";
 
     renderMinimapList();
+    keepDrawerAtStart();
     requestAnimationFrame(() => {
       requestAnimationFrame(syncMinimapState);
     });
@@ -2122,8 +2112,9 @@ function initPosterDrawer() {
         drawer.classList.add("is-open");
         backdrop.classList.add("is-open");
         drawer.setAttribute("aria-hidden", "false");
+        keepDrawerAtStart();
         requestAnimationFrame(syncMinimapState);
-        closeButton.focus({ preventScroll: true });
+        drawer.focus({ preventScroll: true });
       });
       return;
     }
@@ -2133,6 +2124,7 @@ function initPosterDrawer() {
     drawer.classList.add("is-project-drawer");
     drawer.classList.add("is-open");
     backdrop.classList.add("is-open");
+    keepDrawerAtStart();
     requestAnimationFrame(syncMinimapState);
   };
 
@@ -2140,6 +2132,7 @@ function initPosterDrawer() {
     if (drawer.hidden) return;
 
     clearHideTimer();
+    window.clearTimeout(resetPositionTimer);
     drawer.classList.remove("is-project-drawer");
     drawer.classList.remove("is-open");
     backdrop.classList.remove("is-open");
@@ -2256,6 +2249,16 @@ function initPosterDrawer() {
   prevButton.addEventListener("click", () => stepDrawerPoster(-1));
   nextButton.addEventListener("click", () => stepDrawerPoster(1));
   backdrop.addEventListener("click", closeDrawer);
+  const siteHeader = document.querySelector("body[data-page='posters'] > .site-header");
+  siteHeader?.addEventListener(
+    "click",
+    (event) => {
+      if (drawer.hidden || event.target.closest(".mobile-menu-button")) return;
+      const navControl = event.target.closest(".pill-logo, .pill, .mobile-menu-link");
+      if (navControl) closeDrawer();
+    },
+    true,
+  );
   window.addEventListener("resize", syncMinimapState);
 
   window.addEventListener("keydown", (event) => {
@@ -4069,13 +4072,13 @@ function buildProjectTemplate(project, previousProject, nextProject, options = {
 
   return `
     <article class="project-template-shell" data-project-template-slug="${escapeHtml(project.slug)}">
-      <header
-        class="project-template-header pill-site-header"
-        data-pill-nav-host
-        data-pill-nav-context="${isDrawer ? "project-drawer" : "project"}"
-      ></header>
-
-      ${isDrawer ? '<button class="project-detail-close" type="button" hidden>关闭项目详情</button>' : ""}
+      ${isDrawer ? "" : `
+        <header
+          class="project-template-header pill-site-header"
+          data-pill-nav-host
+          data-pill-nav-context="project"
+        ></header>
+      `}
 
       <div class="project-template-intro-space" aria-hidden="true"></div>
 
@@ -4580,7 +4583,6 @@ function initProjectDetailDrawer() {
     contentHost.innerHTML = buildProjectTemplate(project, previousProject, nextProject, {
       mode: "drawer",
     });
-    initPillNav(contentHost);
     harmonizeProjectMediaPairs(contentHost);
     keepFirstFrameAtStart(project.slug);
     queueDeferredImages(contentHost);
@@ -4625,28 +4627,55 @@ function initProjectDetailDrawer() {
       document.body.classList.add("project-detail-open");
       keepFirstFrameAtStart(drawer.dataset.projectSlug);
 
-      const homeLink = contentHost.querySelector(".project-detail-home");
-      homeLink?.focus?.({ preventScroll: true });
+      drawer.focus({ preventScroll: true });
     });
   };
 
-  const closeDrawer = () => {
+  const closeDrawer = (options = {}) => {
     if (drawer.hidden) return;
+
+    const immediate = options?.immediate === true;
+    const restoreFocus = options?.restoreFocus !== false;
 
     drawer.classList.remove("is-open");
     backdrop.classList.remove("is-open");
     drawer.setAttribute("aria-hidden", "true");
     document.body.classList.remove("project-detail-open");
 
-    window.clearTimeout(closeTimer);
-    closeTimer = window.setTimeout(() => {
+    const finishClose = () => {
       drawer.hidden = true;
       backdrop.hidden = true;
       contentHost.innerHTML = "";
       drawer.removeAttribute("data-project-slug");
-      lastActiveElement?.focus?.({ preventScroll: true });
-    }, 560);
+      if (restoreFocus) lastActiveElement?.focus?.({ preventScroll: true });
+    };
+
+    window.clearTimeout(closeTimer);
+    if (immediate) {
+      finishClose();
+    } else {
+      closeTimer = window.setTimeout(finishClose, 560);
+    }
   };
+
+  const siteHeader = document.querySelector("body[data-page='home'] > .site-header");
+  siteHeader?.addEventListener(
+    "click",
+    (event) => {
+      if (drawer.hidden || event.target.closest(".mobile-menu-button")) return;
+
+      const navControl = event.target.closest(".pill-logo, .pill, .mobile-menu-link");
+      if (!navControl) return;
+
+      const homeLabel = navControl.querySelector(".pill-label")?.textContent.trim().toLowerCase();
+      const isHomeControl = navControl.matches(".pill-logo, .mobile-menu-link[href$='index.html']")
+        || homeLabel === "home";
+
+      closeDrawer({ immediate: true, restoreFocus: false });
+      if (isHomeControl) event.preventDefault();
+    },
+    true,
+  );
 
   document.addEventListener("click", (event) => {
     if (event.defaultPrevented || event.button !== 0) return;
@@ -4741,22 +4770,6 @@ function initProjectDetailDrawer() {
       return;
     }
 
-    if (event.key !== "Tab") return;
-
-    const focusable = Array.from(
-      drawer.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'),
-    ).filter((element) => !element.hidden && element.getClientRects().length);
-    if (!focusable.length) return;
-
-    const first = focusable[0];
-    const last = focusable.at(-1);
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
   });
 }
 
