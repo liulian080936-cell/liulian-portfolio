@@ -966,6 +966,10 @@ body.about-drawer-open {
   overflow: hidden;
 }
 
+body.about-drawer-open > .site-header.pill-site-header {
+  z-index: 80;
+}
+
 .about-drawer-trigger.is-active {
   color: var(--ink);
 }
