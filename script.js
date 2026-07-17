@@ -1567,6 +1567,19 @@ function buildPosterArchiveGroups() {
   });
 }
 
+function refreshPosterArchiveCatalog() {
+  posterArchiveGroups = buildPosterArchiveGroups();
+  posterArchiveFlatList = posterArchiveGroups.flatMap((group, groupIndex) =>
+    group.posters.map((poster, posterIndex) => ({
+      groupIndex,
+      posterIndex,
+      poster,
+      key: `${group.year}-${poster.serial}`,
+    })),
+  );
+  return posterArchiveGroups;
+}
+
 function initHomePosterMarquee() {
   const strip = document.querySelector("#homePosterMarquee");
   const track = document.querySelector("#homePosterMarqueeTrack");
@@ -1581,11 +1594,13 @@ function initHomePosterMarquee() {
   };
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  const posters = buildPosterArchiveGroups()
-    .flatMap((group) =>
-      group.posters.map((poster) => ({
+  const posters = refreshPosterArchiveCatalog()
+    .flatMap((group, groupIndex) =>
+      group.posters.map((poster, posterIndex) => ({
         ...poster,
         key: `${group.year}-${poster.serial}`,
+        groupIndex,
+        posterIndex,
       })),
     )
     .slice(0, 14);
@@ -1613,7 +1628,9 @@ function initHomePosterMarquee() {
               type="button"
               data-poster-key="${escapeHtml(poster.key)}"
               data-poster-label="${escapeHtml(poster.title)}"
-              aria-label="${escapeHtml(poster.title)}，点击暂停滚动"
+              data-group-index="${poster.groupIndex}"
+              data-poster-index="${poster.posterIndex}"
+              aria-label="${escapeHtml(poster.title)}，点击锁定并打开海报详情"
               aria-pressed="false"
               ${duplicate ? 'tabindex="-1"' : ""}
             >
@@ -1694,13 +1711,13 @@ function initHomePosterMarquee() {
       card.setAttribute("aria-pressed", String(isSelected));
       card.setAttribute(
         "aria-label",
-        `${card.dataset.posterLabel || "Selected poster"}，${isSelected ? "点击继续滚动" : "点击锁定暂停"}`,
+        `${card.dataset.posterLabel || "Selected poster"}，${isSelected ? "已选中，海报详情已打开" : "点击锁定并打开海报详情"}`,
       );
     });
     strip.classList.toggle("is-paused", persistentlyPaused);
     strip.classList.toggle("is-hover-paused", isHovered || hasFocusedPoster);
     status.textContent = persistentlyPaused
-      ? "海报滚动已锁定暂停，再次点击所选海报可继续"
+      ? "海报滚动已锁定，正在显示所选海报详情"
       : isHovered || hasFocusedPoster
         ? "海报滚动正在平滑减速"
         : "海报正在无缝滚动";
@@ -1711,13 +1728,20 @@ function initHomePosterMarquee() {
     if (!card) return;
 
     const nextKey = card.dataset.posterKey || "";
-    if (persistentlyPaused && selectedKey === nextKey) {
-      selectedKey = "";
-      persistentlyPaused = false;
-    } else {
-      selectedKey = nextKey;
-      persistentlyPaused = true;
-    }
+    selectedKey = nextKey;
+    persistentlyPaused = true;
+    syncSelection();
+    scheduleTick();
+    document.dispatchEvent(
+      new CustomEvent("home:poster-detail-request", {
+        detail: { key: nextKey },
+      }),
+    );
+  });
+
+  document.addEventListener("home:poster-detail-closed", () => {
+    selectedKey = "";
+    persistentlyPaused = false;
     syncSelection();
     scheduleTick();
   });
@@ -1886,14 +1910,7 @@ function renderPosterPage() {
   if (!layout) return;
 
   const meta = document.querySelector("#posterArchiveMeta");
-  posterArchiveGroups = buildPosterArchiveGroups();
-  posterArchiveFlatList = posterArchiveGroups.flatMap((group, groupIndex) =>
-    group.posters.map((poster, posterIndex) => ({
-      groupIndex,
-      posterIndex,
-      poster,
-    })),
-  );
+  refreshPosterArchiveCatalog();
   const totalPosters = posterArchiveSource.reduce((sum, group) => sum + group.files.length, 0);
   const totalSeries = posterArchiveGroups.reduce((sum, group) => sum + group.seriesCount, 0);
   const years = posterArchiveGroups.map((group) => group.year);
@@ -1941,7 +1958,10 @@ function renderPosterPage() {
 }
 
 function initPosterDrawer() {
-  const layout = document.querySelector("#posterLayout");
+  const archiveLayout = document.querySelector("#posterLayout");
+  const homeMarqueeTrack = document.querySelector("#homePosterMarqueeTrack");
+  const layout = archiveLayout || homeMarqueeTrack;
+  const isHomePosterDrawer = layout === homeMarqueeTrack;
   const drawer = document.querySelector("#posterDrawer");
   const backdrop = document.querySelector("#posterDrawerBackdrop");
   const scrollHost = drawer?.querySelector(".poster-case-shell");
@@ -1999,6 +2019,10 @@ function initPosterDrawer() {
     !nextButton
   ) {
     return;
+  }
+
+  if (!posterArchiveFlatList.length) {
+    refreshPosterArchiveCatalog();
   }
 
   let activeCard = null;
@@ -2235,6 +2259,10 @@ function initPosterDrawer() {
       additionalImages.innerHTML = "";
       resetStagePosition();
 
+      if (isHomePosterDrawer) {
+        document.dispatchEvent(new CustomEvent("home:poster-detail-closed"));
+      }
+
       if (activeCard) {
         activeCard.focus({ preventScroll: true });
       }
@@ -2296,22 +2324,37 @@ function initPosterDrawer() {
     stepDrawerImage(direction);
   };
 
-  layout.addEventListener("click", (event) => {
-    const card = event.target.closest(".poster-card");
-    if (!card) return;
+  if (isHomePosterDrawer) {
+    document.addEventListener("home:poster-detail-request", (event) => {
+      const key = event.detail?.key;
+      if (!key) return;
 
-    openDrawer(card, Number(card.dataset.groupIndex), Number(card.dataset.posterIndex));
-  });
+      const reference = posterArchiveFlatList.find((entry) => entry.key === key);
+      const card = Array.from(layout.querySelectorAll(".poster-thumb")).find(
+        (item) => item.dataset.posterKey === key,
+      );
+      if (!reference || !card) return;
 
-  layout.addEventListener("keydown", (event) => {
-    if (event.key !== "Enter" && event.key !== " ") return;
+      openDrawer(card, reference.groupIndex, reference.posterIndex);
+    });
+  } else {
+    layout.addEventListener("click", (event) => {
+      const card = event.target.closest(".poster-card");
+      if (!card) return;
 
-    const card = event.target.closest(".poster-card");
-    if (!card) return;
+      openDrawer(card, Number(card.dataset.groupIndex), Number(card.dataset.posterIndex));
+    });
 
-    event.preventDefault();
-    openDrawer(card, Number(card.dataset.groupIndex), Number(card.dataset.posterIndex));
-  });
+    layout.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+
+      const card = event.target.closest(".poster-card");
+      if (!card) return;
+
+      event.preventDefault();
+      openDrawer(card, Number(card.dataset.groupIndex), Number(card.dataset.posterIndex));
+    });
+  }
 
   minimapList.addEventListener("click", (event) => {
     const button = event.target.closest(".project-drawer-mini");
@@ -2338,7 +2381,7 @@ function initPosterDrawer() {
   prevButton.addEventListener("click", () => stepDrawerPoster(-1));
   nextButton.addEventListener("click", () => stepDrawerPoster(1));
   backdrop.addEventListener("click", closeDrawer);
-  const siteHeader = document.querySelector("body[data-page='posters'] > .site-header");
+  const siteHeader = document.querySelector("body > .site-header");
   siteHeader?.addEventListener(
     "click",
     (event) => {
@@ -5458,6 +5501,7 @@ function initPage() {
     initAboutDrawer();
     initProjectBrowserDrawer();
     initProjectDetailDrawer();
+    initPosterDrawer();
     initChoreographedMotion();
     scheduleNonCriticalTask(() => {
       initHomeProjectPixelHover();

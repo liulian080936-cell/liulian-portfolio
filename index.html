@@ -108,7 +108,7 @@
                 </svg>
               </a>
             </div>
-            <strong>Hover to pause / tap a poster to hold</strong>
+            <strong>Hover to pause / tap a poster to view</strong>
           </div>
 
           <div
@@ -466,8 +466,78 @@
       </div>
     </aside>
 
+    <div class="poster-drawer-backdrop" id="posterDrawerBackdrop" hidden></div>
+    <aside
+      class="poster-drawer poster-case-drawer"
+      id="posterDrawer"
+      role="dialog"
+      aria-modal="false"
+      aria-labelledby="posterDrawerTitle"
+      aria-hidden="true"
+      tabindex="-1"
+      hidden
+    >
+      <article class="project-template-shell poster-case-shell">
+        <div class="project-template-intro-space" aria-hidden="true"></div>
+
+        <div class="project-template-layout poster-case-layout">
+          <aside class="project-template-info poster-case-info">
+            <span class="project-template-section-label">01 / POSTER INFO</span>
+
+            <div class="poster-case-heading">
+              <span id="posterDrawerCounter"></span>
+              <span id="posterDrawerSerial"></span>
+              <h2 id="posterDrawerTitle"></h2>
+            </div>
+
+            <div class="project-template-summary poster-case-summary">
+              <p id="posterDrawerDescription"></p>
+              <p id="posterDrawerDetails"></p>
+              <p id="posterDrawerCredits"></p>
+              <p id="posterDrawerAwards"></p>
+            </div>
+
+            <ul class="project-template-services poster-case-facts">
+              <li>+ <span id="posterDrawerSize"></span></li>
+              <li>+ <span id="posterDrawerLocation"></span></li>
+              <li>+ <span id="posterDrawerCategory"></span></li>
+              <li>+ AUTHOR / <span id="posterDrawerAuthor"></span></li>
+              <li>+ <span id="posterDrawerCollection"></span> <span id="posterDrawerCollectionTag"></span></li>
+            </ul>
+
+            <div class="poster-case-controls" aria-label="海报切换控制">
+              <button class="poster-case-control" id="posterDrawerPrev" type="button" aria-label="查看上一张海报">← PREVIOUS</button>
+              <button class="poster-case-control" id="posterDrawerNext" type="button" aria-label="查看下一张海报">NEXT →</button>
+            </div>
+
+            <p class="poster-case-footer" id="posterDrawerFooter"></p>
+            <button class="sr-only" id="posterDrawerClose" type="button" tabindex="-1">关闭海报详情</button>
+          </aside>
+
+          <div class="project-template-content poster-case-content">
+            <section class="project-template-gallery poster-case-gallery" aria-label="海报详情图像">
+              <figure class="project-template-media poster-case-media is-wide">
+                <div class="poster-drawer-stage" id="posterDrawerStage">
+                  <div class="poster-drawer-figure-frame">
+                    <div class="project-drawer-balance" id="posterDrawerBalance" aria-hidden="true"></div>
+                    <div class="poster-drawer-figure">
+                      <img id="posterDrawerImage" alt="" />
+                    </div>
+                    <div class="project-drawer-minimap" id="projectDrawerMinimap" aria-label="快速跳转海报" hidden>
+                      <div class="project-drawer-minimap-list" id="projectDrawerMinimapList"></div>
+                    </div>
+                  </div>
+                  <div class="poster-case-additional-images" id="posterDrawerAdditionalImages"></div>
+                </div>
+              </figure>
+            </section>
+          </div>
+        </div>
+      </article>
+    </aside>
+
     <script src="./assets/projects/manifest.js"></script>
     <script src="./node_modules/gsap/dist/gsap.min.js"></script>
-    <script src="./script.js?v=20260717c"></script>
+    <script src="./script.js?v=20260717e"></script>
   </body>
 </html>
