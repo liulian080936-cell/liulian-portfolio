@@ -1193,7 +1193,7 @@ body.about-drawer-open > .site-header.pill-site-header {
   align-self: center;
 }
 
-.hero-kicker-note span {
+.hero-kicker-note > span {
   display: block;
   margin-bottom: 0;
   font-size: var(--type-label-size);
@@ -4128,7 +4128,7 @@ body[data-page="posters"] .poster-drawer.is-project-drawer .poster-drawer-figure
     gap: 8px;
   }
 
-  .hero-kicker-note span {
+  .hero-kicker-note > span {
     margin-bottom: 4px;
   }
 
