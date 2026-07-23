@@ -678,7 +678,16 @@ const scrambledTextConfig = Object.freeze({
   duration: 0.95,
   speed: 0.6,
   scrambleChars: ".:",
-  selector: "a, p, h1, h2, h3, h4, h5, h6, strong, small, button, label, li, blockquote, figcaption, dt, dd, span",
+  selector: [
+    ".pill-label",
+    ".hero-kicker",
+    ".poster-band-kicker",
+    ".project-template-section-label",
+    ".project-template-identity-index",
+    ".project-browser-intro-label",
+    ".project-browser-card-index",
+    ".poster-archive-kicker",
+  ].join(", "),
 });
 const scrambledTextIgnoredTags = new Set([
   "SCRIPT",
@@ -754,6 +763,25 @@ function initHomeLoadingScreen() {
   const body = document.body;
   const startTime = performance.now();
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (prefersReducedMotion) {
+    body.classList.add("is-home-loading");
+    body.setAttribute("aria-busy", "true");
+
+    window.requestAnimationFrame(() => {
+      loader.classList.add("is-exiting");
+      body.classList.remove("is-home-loading");
+      body.removeAttribute("aria-busy");
+      document.dispatchEvent(new CustomEvent("home:content-revealed"));
+
+      window.setTimeout(() => {
+        loader.hidden = true;
+        loader.remove();
+      }, 1);
+    });
+    return;
+  }
+
   const hasVideo = video instanceof HTMLVideoElement;
   const minDuration = prefersReducedMotion ? 900 : 1500;
   const maxDuration = 7000;
@@ -2215,6 +2243,7 @@ function initPosterDrawer() {
     setActivePoster(nextFlatIndex);
     clearHideTimer();
     renderDrawerPoster();
+    drawer.removeAttribute("inert");
 
     if (drawer.hidden) {
       drawer.hidden = false;
@@ -2250,6 +2279,7 @@ function initPosterDrawer() {
     drawer.classList.remove("is-open");
     backdrop.classList.remove("is-open");
     drawer.setAttribute("aria-hidden", "true");
+    drawer.setAttribute("inert", "");
     document.body.classList.remove("poster-drawer-open");
 
     hideDrawerTimer = window.setTimeout(() => {
@@ -2825,6 +2855,34 @@ function initHomeProjectMediaRatios() {
   });
 }
 
+function initHomeProjectMetadata() {
+  const projectMap = new Map(projectCaseSource.map((project) => [project.slug, project]));
+  const cards = document.querySelectorAll(
+    "body[data-page='home'] .cover-cloud-card[href*='project.html?slug=']",
+  );
+
+  cards.forEach((card) => {
+    if (card.querySelector(".cover-cloud-card-copy")) return;
+
+    const url = new URL(card.getAttribute("href"), window.location.href);
+    const project = projectMap.get(url.searchParams.get("slug"));
+    if (!project) return;
+
+    card.insertAdjacentHTML(
+      "beforeend",
+      `
+        <div class="cover-cloud-card-copy">
+          <span class="cover-cloud-card-index">${escapeHtml(project.number)}</span>
+          <div>
+            <strong>${escapeHtml(project.title)}</strong>
+          </div>
+          <p>${escapeHtml(project.discipline)}</p>
+        </div>
+      `,
+    );
+  });
+}
+
 function syncSiteHeaderHeight() {
   const header = document.querySelector(".site-header, .project-template-header");
   if (!header) return;
@@ -2983,7 +3041,7 @@ function buildPillNavMarkup(context) {
           <span class="hamburger-line"></span>
         </button>
       </nav>
-      <div class="mobile-menu-popover mobile-only" aria-hidden="true">
+      <div class="mobile-menu-popover mobile-only" aria-hidden="true" inert>
         <ul class="mobile-menu-list">
           ${items.map((item, index) => `<li>${buildPillNavItem(item, index, { mobile: true })}</li>`).join("")}
         </ul>
@@ -3088,6 +3146,7 @@ function initPillNav(scope = document) {
       menuButton.setAttribute("aria-expanded", String(open));
       menuButton.setAttribute("aria-label", open ? "关闭导航菜单" : "打开导航菜单");
       mobileMenu.setAttribute("aria-hidden", String(!open));
+      mobileMenu.toggleAttribute("inert", !open);
       const lines = menuButton.querySelectorAll(".hamburger-line");
 
       if (gsapApi && !reducedMotion) {
@@ -3173,24 +3232,20 @@ let firstLoadTypeMutationObserver = null;
 let firstLoadTypeSequence = 0;
 const firstLoadTypeEntries = new WeakMap();
 const firstLoadTypeSelector = [
-  "a",
-  "button",
-  "p",
-  "h1",
-  "h2",
-  "h3",
-  "h4",
-  "h5",
-  "h6",
-  "strong",
-  "small",
-  "label",
-  "li",
-  "blockquote",
-  "figcaption",
-  "dt",
-  "dd",
-  "span",
+  ".pill-label",
+  ".mobile-menu-link",
+  ".hero-kicker-left",
+  ".hero-kicker-center",
+  ".hero-kicker-note > span",
+  ".poster-band-kicker",
+  ".poster-archive-kicker",
+  ".poster-archive-hero h1",
+  ".project-template-section-label",
+  ".project-template-identity-index",
+  ".project-template-identity-title",
+  ".project-browser-intro-label",
+  ".project-browser-intro h2",
+  ".project-browser-card-index",
 ].join(",");
 
 function shouldTypeFirstLoadText(element) {
@@ -3770,33 +3825,16 @@ function renderProjectBrowserCard(project) {
         ${renderProjectBrowserMedia(project)}
       </figure>
       <div class="project-browser-card-copy">
+        <span class="project-browser-card-index">${escapeHtml(project.number)}</span>
         <strong class="project-browser-card-title">${escapeHtml(displayTitle)}</strong>
+        <span class="project-browser-card-discipline">${escapeHtml(project.discipline)}</span>
       </div>
     </a>
   `;
 }
 
 function renderProjectBrowserGrid(catalog) {
-  const baseColumnSize = Math.floor(catalog.length / 3);
-  const columnSizes = [
-    baseColumnSize,
-    baseColumnSize,
-    catalog.length - baseColumnSize * 2,
-  ];
-  let offset = 0;
-
-  return columnSizes
-    .map((size, columnIndex) => {
-      const projects = catalog.slice(offset, offset + size);
-      offset += size;
-
-      return `
-        <div class="project-browser-column" data-project-column="${columnIndex + 1}">
-          ${projects.map((project) => renderProjectBrowserCard(project)).join("")}
-        </div>
-      `;
-    })
-    .join("");
+  return catalog.map((project) => renderProjectBrowserCard(project)).join("");
 }
 
 function initProjectBrowserVideos(scope) {
@@ -3862,6 +3900,7 @@ function initAboutDrawer() {
   const openDrawer = ({ skipHash = false, focusClose = true } = {}) => {
     window.clearTimeout(closeTimer);
     lastActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : trigger;
+    drawer.removeAttribute("inert");
 
     if (drawer.hidden) {
       drawer.hidden = false;
@@ -3894,6 +3933,7 @@ function initAboutDrawer() {
 
     drawer.classList.remove("is-open");
     drawer.setAttribute("aria-hidden", "true");
+    drawer.setAttribute("inert", "");
     trigger.setAttribute("aria-expanded", "false");
     trigger.classList.remove("is-active");
     document.body.classList.remove("about-drawer-open");
@@ -3946,6 +3986,200 @@ function initAboutDrawer() {
   if (window.location.hash === "#about") {
     openDrawer({ skipHash: true, focusClose: false });
   }
+}
+
+function initPosterBrowserDrawer() {
+  const drawer = document.querySelector("#posterBrowserDrawer");
+  const shell = drawer?.querySelector(".poster-browser-shell");
+  const frame = document.querySelector("#posterBrowserFrame");
+  const backdrop = document.querySelector("#posterBrowserBackdrop");
+
+  if (!drawer || !shell || !(frame instanceof HTMLIFrameElement) || !backdrop) {
+    return;
+  }
+
+  let closeTimer = 0;
+  let openTimer = 0;
+  let lastActiveElement = null;
+  let frameReady = false;
+
+  const isPosterArchiveLink = (link) => {
+    if (!(link instanceof HTMLAnchorElement)) return false;
+    if (link.target === "_blank" || link.hasAttribute("download")) return false;
+
+    try {
+      const url = new URL(link.href, window.location.href);
+      return url.origin === window.location.origin
+        && /\/posters\.html$/.test(url.pathname);
+    } catch {
+      return false;
+    }
+  };
+
+  const focusPosterFrame = () => {
+    if (drawer.hidden || drawer.getAttribute("aria-hidden") !== "false") return;
+    frame.focus({ preventScroll: true });
+    frame.contentWindow?.focus();
+  };
+
+  const openDrawer = (source = null) => {
+    window.clearTimeout(closeTimer);
+    window.clearTimeout(openTimer);
+    lastActiveElement = source instanceof HTMLElement
+      ? source
+      : document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+
+    drawer.removeAttribute("inert");
+    drawer.hidden = false;
+    backdrop.hidden = false;
+
+    if (!frame.getAttribute("src")) {
+      frame.src = frame.dataset.src || "./posters.html";
+    }
+
+    window.requestAnimationFrame(() => {
+      drawer.classList.add("is-open");
+      shell.classList.add("is-open");
+      backdrop.classList.add("is-open");
+      drawer.setAttribute("aria-hidden", "false");
+      document.body.classList.add("poster-browser-open");
+      drawer.focus({ preventScroll: true });
+
+      if (frameReady) {
+        window.setTimeout(focusPosterFrame, 80);
+      }
+    });
+  };
+
+  const closeDrawer = ({ restoreFocus = true, afterClose = null } = {}) => {
+    if (drawer.hidden) return;
+
+    drawer.classList.remove("is-open");
+    shell.classList.remove("is-open");
+    backdrop.classList.remove("is-open");
+    drawer.setAttribute("aria-hidden", "true");
+    drawer.setAttribute("inert", "");
+    document.body.classList.remove("poster-browser-open");
+
+    window.clearTimeout(closeTimer);
+    closeTimer = window.setTimeout(() => {
+      drawer.hidden = true;
+      backdrop.hidden = true;
+
+      if (typeof afterClose === "function") {
+        afterClose();
+        return;
+      }
+
+      if (restoreFocus) {
+        lastActiveElement?.focus?.({ preventScroll: true });
+      }
+    }, 540);
+  };
+
+  const closeCurrentOverlayThenOpen = (source) => {
+    const projectDetail = document.querySelector("#projectDetailDrawer");
+    if (projectDetail && !projectDetail.hidden) {
+      projectDetail.querySelector(".project-detail-close")?.click();
+      openTimer = window.setTimeout(() => openDrawer(source), 560);
+      return;
+    }
+
+    const projectBrowser = document.querySelector("#projectBrowserDrawer");
+    if (projectBrowser && !projectBrowser.hidden) {
+      document.querySelector("#projectBrowserClose")?.click();
+      openTimer = window.setTimeout(() => openDrawer(source), 560);
+      return;
+    }
+
+    openDrawer(source);
+  };
+
+  const routeFromFrame = (url) => {
+    const hash = url.hash;
+    closeDrawer({
+      restoreFocus: false,
+      afterClose: () => {
+        if (hash === "#about") {
+          document.querySelector("#aboutDrawerTrigger")?.click();
+          return;
+        }
+
+        if (hash === "#projects") {
+          document.querySelector("#projectBrowserTrigger")?.click();
+          return;
+        }
+
+        lastActiveElement?.focus?.({ preventScroll: true });
+      },
+    });
+  };
+
+  const bindFrameNavigation = () => {
+    const frameDocument = frame.contentDocument;
+    if (!frameDocument) return;
+
+    frameReady = true;
+    frameDocument.addEventListener("click", (event) => {
+      const target = event.target?.nodeType === 1
+        ? event.target
+        : event.target?.parentElement;
+      const link = target?.closest?.("a[href]") || null;
+      if (!link || link.tagName !== "A") return;
+
+      const url = new URL(link.href, frame.contentWindow?.location.href || frame.src);
+      if (url.origin !== window.location.origin) return;
+      if (!/(?:\/|\/index\.html)$/.test(url.pathname)) return;
+
+      event.preventDefault();
+      routeFromFrame(url);
+    });
+
+    frame.contentWindow?.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+
+      const posterDetail = frameDocument.querySelector("#posterDrawer");
+      if (posterDetail && !posterDetail.hidden) return;
+
+      event.preventDefault();
+      closeDrawer();
+    });
+
+    focusPosterFrame();
+  };
+
+  document.addEventListener("click", (event) => {
+    if (
+      event.defaultPrevented
+      || event.button !== 0
+      || event.metaKey
+      || event.ctrlKey
+      || event.shiftKey
+      || event.altKey
+    ) {
+      return;
+    }
+
+    const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
+    if (!isPosterArchiveLink(link)) return;
+
+    event.preventDefault();
+    closeCurrentOverlayThenOpen(link);
+  });
+
+  frame.addEventListener("load", bindFrameNavigation);
+  backdrop.addEventListener("click", () => closeDrawer());
+  drawer.addEventListener("click", (event) => {
+    if (event.target !== drawer) return;
+    closeDrawer();
+  });
+  window.addEventListener("keydown", (event) => {
+    if (drawer.hidden || event.key !== "Escape") return;
+    event.preventDefault();
+    closeDrawer();
+  });
 }
 
 function initProjectBrowserDrawer() {
@@ -4006,6 +4240,7 @@ function initProjectBrowserDrawer() {
   const openDrawer = () => {
     window.clearTimeout(closeTimer);
     lastActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : trigger;
+    drawer.removeAttribute("inert");
 
     if (drawer.hidden) {
       drawer.hidden = false;
@@ -4036,6 +4271,7 @@ function initProjectBrowserDrawer() {
     shell.classList.remove("is-open");
     backdrop.classList.remove("is-open");
     drawer.setAttribute("aria-hidden", "true");
+    drawer.setAttribute("inert", "");
     trigger.setAttribute("aria-expanded", "false");
     trigger.classList.remove("is-active");
     document.body.classList.remove("project-browser-open");
@@ -4221,6 +4457,8 @@ function harmonizeProjectMediaPairs(root) {
 
 function buildProjectTemplate(project, previousProject, nextProject, options = {}) {
   const isDrawer = options.mode === "drawer";
+  const identityHeadingTag = isDrawer ? "h2" : "h1";
+  const identityTitleId = `projectIdentityTitle-${project.slug}`;
   const infoParagraphs = [project.summary, ...(project.detailZh || [])]
     .filter(Boolean)
     .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
@@ -4246,7 +4484,16 @@ function buildProjectTemplate(project, previousProject, nextProject, options = {
         ></header>
       `}
 
-      <div class="project-template-intro-space" aria-hidden="true"></div>
+      <section class="project-template-identity" aria-labelledby="${identityTitleId}">
+        <span class="project-template-identity-index">${escapeHtml(project.number)} / PROJECT</span>
+        <div class="project-template-identity-title-wrap">
+          <${identityHeadingTag} class="project-template-identity-title" id="${identityTitleId}">
+            ${escapeHtml(project.title)}
+          </${identityHeadingTag}>
+          ${project.subtitle ? `<p class="project-template-identity-subtitle">${escapeHtml(project.subtitle)}</p>` : ""}
+        </div>
+        <p class="project-template-identity-discipline">${escapeHtml(project.discipline)}</p>
+      </section>
 
       <div class="project-template-layout">
         <aside class="project-template-info">
@@ -4526,6 +4773,7 @@ function initProjectDrawer() {
     activeCard = card;
     activeIndex = nextIndex;
     clearHideTimer();
+    drawer.removeAttribute("inert");
 
     if (!minimapRendered) {
       renderMinimapList();
@@ -4565,6 +4813,7 @@ function initProjectDrawer() {
     drawer.classList.remove("is-open");
     backdrop.classList.remove("is-open");
     drawer.setAttribute("aria-hidden", "true");
+    drawer.setAttribute("inert", "");
     document.body.classList.remove("poster-drawer-open");
 
     hideDrawerTimer = window.setTimeout(() => {
@@ -4774,6 +5023,7 @@ function initProjectDetailDrawer() {
 
     window.clearTimeout(closeTimer);
     lastActiveElement = source instanceof HTMLElement ? source : document.activeElement;
+    drawer.removeAttribute("inert");
 
     const projectBrowserClose = document.querySelector("#projectBrowserClose");
     const projectBrowserDrawer = document.querySelector("#projectBrowserDrawer");
@@ -4806,6 +5056,7 @@ function initProjectDetailDrawer() {
     drawer.classList.remove("is-open");
     backdrop.classList.remove("is-open");
     drawer.setAttribute("aria-hidden", "true");
+    drawer.setAttribute("inert", "");
     document.body.classList.remove("project-detail-open");
 
     const finishClose = () => {
@@ -4950,6 +5201,7 @@ function initTargetCursor() {
   const cornerSize = 12;
   const borderWidth = 3;
   const hoverInset = borderWidth;
+  const cursorFollowStrength = 0.38;
   const defaultCornerPositions = [
     { x: -cornerSize * 1.5, y: -cornerSize * 1.5 },
     { x: cornerSize * 0.5, y: -cornerSize * 1.5 },
@@ -5022,8 +5274,8 @@ function initTargetCursor() {
 
   const render = () => {
     renderFrameId = 0;
-    renderedX = lerp(renderedX, mouseX, 0.15);
-    renderedY = lerp(renderedY, mouseY, 0.15);
+    renderedX = lerp(renderedX, mouseX, cursorFollowStrength);
+    renderedY = lerp(renderedY, mouseY, cursorFollowStrength);
 
     cursor.style.transform = `translate3d(${renderedX}px, ${renderedY}px, 0)`;
 
@@ -5084,6 +5336,8 @@ function initTargetCursor() {
     mouseY = event.clientY;
 
     if (!isVisible) {
+      renderedX = mouseX;
+      renderedY = mouseY;
       setVisible(true);
     }
 
@@ -5159,6 +5413,7 @@ const choreographedRevealSelector = [
   ".project-template-media",
   ".project-template-next",
   ".project-template-footer > *",
+  ".project-template-identity > *",
   ".project-browser-intro > *",
   ".project-browser-card",
   ".project-browser-footer > *",
@@ -5461,10 +5716,66 @@ function initChoreographedMotion() {
   }
 }
 
+function initDialogFocusTrap() {
+  const focusableSelector = [
+    "a[href]",
+    "button:not([disabled])",
+    "input:not([disabled])",
+    "select:not([disabled])",
+    "textarea:not([disabled])",
+    "[tabindex]:not([tabindex='-1'])",
+  ].join(", ");
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Tab") return;
+
+    const openDialogs = Array.from(
+      document.querySelectorAll("[data-focus-trap][aria-hidden='false']:not([hidden])"),
+    ).filter((dialog) => !dialog.hasAttribute("inert"));
+    const dialog = openDialogs.at(-1);
+    if (!dialog) return;
+
+    const controls = Array.from(dialog.querySelectorAll(focusableSelector)).filter((control) => {
+      if (!(control instanceof HTMLElement)) return false;
+      if (control.closest("[hidden], [inert], [aria-hidden='true']")) return false;
+      const style = window.getComputedStyle(control);
+      return style.display !== "none" && style.visibility !== "hidden";
+    });
+
+    if (!controls.length) {
+      event.preventDefault();
+      dialog.focus?.({ preventScroll: true });
+      return;
+    }
+
+    const first = controls[0];
+    const last = controls[controls.length - 1];
+    const active = document.activeElement;
+
+    if (!dialog.contains(active)) {
+      event.preventDefault();
+      first.focus({ preventScroll: true });
+      return;
+    }
+
+    if (event.shiftKey && active === first) {
+      event.preventDefault();
+      last.focus({ preventScroll: true });
+      return;
+    }
+
+    if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus({ preventScroll: true });
+    }
+  });
+}
+
 function initPage() {
   const page = document.body?.dataset.page;
 
   initPillNav();
+  initDialogFocusTrap();
   syncSiteHeaderHeight();
 
   if (page === "posters") {
@@ -5496,9 +5807,11 @@ function initPage() {
     initFirstLoadTypedText({
       waitForHomeReveal: Boolean(document.querySelector("#homeLoadingScreen")),
     });
+    initHomeProjectMetadata();
     initHomeProjectMediaRatios();
     initFooterLinkPreviews();
     initAboutDrawer();
+    initPosterBrowserDrawer();
     initProjectBrowserDrawer();
     initProjectDetailDrawer();
     initPosterDrawer();
