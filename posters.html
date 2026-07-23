@@ -3,6 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#ffffff" />
     <title>LIULIAN Posters</title>
     <meta
       name="description"
@@ -15,7 +17,7 @@
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260715w" />
+    <link rel="stylesheet" href="./styles.css?v=20260723a" />
   </head>
   <body data-page="posters">
     <header class="site-header pill-site-header" data-pill-nav-host data-pill-nav-context="posters"></header>
@@ -35,91 +37,74 @@
 
       <div class="poster-drawer-backdrop" id="posterDrawerBackdrop" hidden></div>
       <aside
-        class="poster-drawer"
+        class="poster-drawer poster-case-drawer"
         id="posterDrawer"
         role="dialog"
-        aria-modal="true"
-        aria-labelledby="posterDrawerTitle"
-        aria-hidden="true"
-        hidden
+        aria-modal="false"
+      aria-labelledby="posterDrawerTitle"
+      aria-hidden="true"
+      data-focus-trap
+      tabindex="-1"
+      inert
+      hidden
       >
-        <div class="poster-drawer-shell">
-          <div class="poster-drawer-rail" aria-label="查看控制">
-            <button class="poster-rail-button poster-rail-button-close" id="posterDrawerClose" type="button" aria-label="关闭查看">
-              ×
-            </button>
-            <button class="poster-rail-button" id="posterDrawerPrev" type="button" aria-label="查看上一张海报">
-              ←
-            </button>
-            <button class="poster-rail-button" id="posterDrawerNext" type="button" aria-label="查看下一张海报">
-              →
-            </button>
-          </div>
+        <article class="project-template-shell poster-case-shell">
+          <div class="project-template-intro-space" aria-hidden="true"></div>
 
-          <div class="poster-drawer-body">
-            <div class="poster-drawer-stage" id="posterDrawerStage">
-              <div class="poster-drawer-figure-frame">
-                <div class="project-drawer-balance" id="posterDrawerBalance" aria-hidden="true"></div>
-                <div class="poster-drawer-figure">
-                  <img id="posterDrawerImage" alt="" />
-                </div>
-                <div class="project-drawer-minimap" id="projectDrawerMinimap" aria-label="快速跳转海报">
-                  <div class="project-drawer-minimap-list" id="projectDrawerMinimapList"></div>
-                </div>
-              </div>
-            </div>
+          <div class="project-template-layout poster-case-layout">
+            <aside class="project-template-info poster-case-info">
+              <span class="project-template-section-label">01 / POSTER INFO</span>
 
-            <aside class="poster-drawer-meta">
-              <div class="poster-drawer-actions" aria-label="海报操作">
-                <span class="poster-drawer-action">like <span aria-hidden="true">♡</span></span>
-                <span class="poster-drawer-action">collect <span aria-hidden="true">⤴</span></span>
-                <span class="poster-drawer-action">share <span aria-hidden="true">↗</span></span>
+              <div class="poster-case-heading">
+                <span id="posterDrawerCounter"></span>
+                <span id="posterDrawerSerial"></span>
+                <h2 id="posterDrawerTitle"></h2>
               </div>
 
-              <section class="poster-drawer-section poster-drawer-section-title">
-                <div class="poster-drawer-overline">
-                  <span id="posterDrawerCounter"></span>
-                  <span id="posterDrawerSerial"></span>
-                </div>
-                <p id="posterDrawerTitle"></p>
-                <div class="poster-drawer-facts">
-                  <span id="posterDrawerSize"></span>
-                  <span id="posterDrawerLocation"></span>
-                  <span id="posterDrawerCategory"></span>
-                </div>
-              </section>
-
-              <section class="poster-drawer-section">
-                <span id="posterDrawerDetails"></span>
+              <div class="project-template-summary poster-case-summary">
                 <p id="posterDrawerDescription"></p>
+                <p id="posterDrawerDetails"></p>
                 <p id="posterDrawerCredits"></p>
-              </section>
-
-              <section class="poster-drawer-section">
-                <span class="poster-drawer-label">awards</span>
                 <p id="posterDrawerAwards"></p>
-              </section>
+              </div>
 
-              <section class="poster-drawer-section poster-drawer-section-inline">
-                <span class="poster-drawer-label">author</span>
-                <div class="poster-drawer-chip-row">
-                  <strong id="posterDrawerAuthor"></strong>
-                  <span class="poster-drawer-badge">LI</span>
-                </div>
-              </section>
+              <ul class="project-template-services poster-case-facts">
+                <li>+ <span id="posterDrawerSize"></span></li>
+                <li>+ <span id="posterDrawerLocation"></span></li>
+                <li>+ <span id="posterDrawerCategory"></span></li>
+                <li>+ AUTHOR / <span id="posterDrawerAuthor"></span></li>
+                <li>+ <span id="posterDrawerCollection"></span> <span id="posterDrawerCollectionTag"></span></li>
+              </ul>
 
-              <section class="poster-drawer-section poster-drawer-section-inline">
-                <span class="poster-drawer-label">view more of</span>
-                <div class="poster-drawer-chip-row">
-                  <strong id="posterDrawerCollection"></strong>
-                  <span class="poster-drawer-badge poster-drawer-badge-accent" id="posterDrawerCollectionTag"></span>
-                </div>
-              </section>
+              <div class="poster-case-controls" aria-label="海报切换控制">
+                <button class="poster-case-control" id="posterDrawerPrev" type="button" aria-label="查看上一张海报">← PREVIOUS</button>
+                <button class="poster-case-control" id="posterDrawerNext" type="button" aria-label="查看下一张海报">NEXT →</button>
+              </div>
 
-              <p class="poster-drawer-footer" id="posterDrawerFooter"></p>
+              <p class="poster-case-footer" id="posterDrawerFooter"></p>
+              <button class="sr-only" id="posterDrawerClose" type="button" tabindex="-1">关闭海报详情</button>
             </aside>
+
+            <div class="project-template-content poster-case-content">
+              <section class="project-template-gallery poster-case-gallery" aria-label="海报详情图像">
+                <figure class="project-template-media poster-case-media is-wide">
+                  <div class="poster-drawer-stage" id="posterDrawerStage">
+                    <div class="poster-drawer-figure-frame">
+                      <div class="project-drawer-balance" id="posterDrawerBalance" aria-hidden="true"></div>
+                      <div class="poster-drawer-figure">
+                        <img id="posterDrawerImage" alt="" />
+                      </div>
+                      <div class="project-drawer-minimap" id="projectDrawerMinimap" aria-label="快速跳转海报" hidden>
+                        <div class="project-drawer-minimap-list" id="projectDrawerMinimapList"></div>
+                      </div>
+                    </div>
+                    <div class="poster-case-additional-images" id="posterDrawerAdditionalImages"></div>
+                  </div>
+                </figure>
+              </section>
+            </div>
           </div>
-        </div>
+        </article>
       </aside>
 
       <footer class="site-footer minimal-footer poster-archive-footer">
@@ -129,6 +114,6 @@
     </main>
 
     <script src="./node_modules/gsap/dist/gsap.min.js"></script>
-    <script src="./script.js?v=20260715w"></script>
+    <script src="./script.js?v=20260723a"></script>
   </body>
 </html>
