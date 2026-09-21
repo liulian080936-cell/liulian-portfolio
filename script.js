@@ -481,10 +481,10 @@ const projectCaseSource = [
     discipline: "Bookstore Brand / Space Graphics",
     accent: "#9a7a5e",
     summary:
-      "A bookstore identity unfolded through environmental views, print surfaces, and a steady visual cadence.",
+      "A flexible bookstore identity shaped around the idea of a “Room” for reading, studying, and staying.",
     detailZh: [
-      "五本书屋希望为当代年轻人打造一个兼具阅读、借阅与自习体验的复合型空间，把传统书店与需要个人学习空间的当代习惯结合在一起。",
-      "我们更愿意把书店理解成一个“Room”。设计以书本为核心意象，用书本搭建一个属于自己的学习乌托邦，把家的体验与通过书籍认知世界的温度一起带给年轻人，在趣味与秩序之间保留空间的意义。",
+      "五本书屋是一个结合阅读、借阅与自习的复合空间，为年轻人提供一间可以停留的“Room”。",
+      "设计以书本为核心意象，在趣味与秩序之间建立品牌识别与空间图形，让阅读拥有接近“家”的温度。",
     ],
     detailEn: [
       "Fivebook treats the bookstore as a room for reading, studying, and staying.",
@@ -4467,7 +4467,7 @@ function buildProjectTemplate(project, previousProject, nextProject, options = {
     .split("/")
     .map((service) => service.trim())
     .filter(Boolean);
-  const serviceMarkup = [...services, "Selected Project Archive"]
+  const serviceMarkup = services
     .filter((service, index, list) => list.indexOf(service) === index)
     .map((service) => `<li>+ ${escapeHtml(service)}</li>`)
     .join("");
