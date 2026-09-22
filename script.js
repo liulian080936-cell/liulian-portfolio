@@ -34,6 +34,19 @@ const posterArchiveSource = [
       "8-4.webp",
       "8-5.webp",
       "8.webp",
+      "9.webp",
+      "9-2.webp",
+      "10.webp",
+      "10-2.webp",
+      "11.webp",
+      "11-2.webp",
+      "11-3.webp",
+      "12.webp",
+      "12-2.webp",
+      "12-3.webp",
+      "13.webp",
+      "13-2.webp",
+      "13-3.webp",
     ],
   },
   {
@@ -139,6 +152,11 @@ const posterArchiveTitles = {
     6: "Ordered Love / Disordered Demise",
     7: "Rainy Days Bring No Peace / 晴无闲时，雨无静时",
     8: "MUSILAC AIX",
+    9: "Acid Resonance Festival / 酸性共振音乐节",
+    10: "Just Feeling / 只管感受",
+    11: "Gaze Membrane / 凝视膜",
+    12: "Prototype 02 / 原型 02",
+    13: "Orbital Membrane / 轨道膜",
   },
   "2024 & 2025": {
     1: "头脑中的魔怪",
@@ -188,6 +206,11 @@ const posterArchiveCardTitles = {
     6: "Ordered Love / 火商",
     7: "Rainy Days / 雨无静时",
     8: "MUSILAC AIX",
+    9: "Acid Resonance / 酸性共振",
+    10: "Just Feeling / 只管感受",
+    11: "Gaze Membrane / 凝视膜",
+    12: "Prototype 02 / 原型 02",
+    13: "Orbital Membrane / 轨道膜",
   },
   "2024 & 2025": {
     1: "Monster Mind / 头脑魔怪",
@@ -225,6 +248,15 @@ const posterArchiveCardTitles = {
     18: "SEEING IS",
     19: "CHAOS",
     20: "Silence Full Of",
+  },
+};
+const posterArchiveDescriptions = {
+  "2026": {
+    9: "以酸性音乐、夜间派对与持续脉冲为线索，将铬金属字、噪点纹理和高饱和反相色叠进同一画面。两张海报以昼夜配色构成一组，保留失真、拥挤和高速闪烁的现场感。",
+    10: "围绕触觉、呼吸和无法被准确命名的情绪展开。嘴唇、金属饰物与侵蚀文字被压进同一层图像，黑绿与留白两个版本分别指向情绪的聚合与散开。",
+    11: "从眼睛、皮肤和指纹纹理出发，把凝视拆解成红、棕、蓝三种感知切片。镂空的铬质结构像生长中的表皮边界，包裹又暴露图像中的身体细节。",
+    12: "以机械鸟首作为一件尚未定型的原型标本。古典画框、透明结构与液态金属被叠放在一起，三组冷暖配色让同一对象在圣像、机器和遗物之间切换。",
+    13: "银色形体在黑色空间中发生碰撞，蓝色膜状结构沿着轨迹扩张。细密的等高线、金属反光与局部色偏共同记录一次抽象能量的聚集、穿透与偏移。",
   },
 };
 const posterPixelHoverConfig = {
@@ -1568,6 +1600,7 @@ function buildPosterArchiveGroups() {
         const variantCount = orderedImages.length;
         const title = posterArchiveTitles[group.year]?.[serial] || `Series ${serial}`;
         const cardTitle = posterArchiveCardTitles[group.year]?.[serial] || title;
+        const description = posterArchiveDescriptions[group.year]?.[serial] || "";
 
         return {
           serial: String(serial),
@@ -1578,6 +1611,7 @@ function buildPosterArchiveGroups() {
           stackCount: variantCount,
           title,
           cardTitle,
+          description,
           details: variantCount > 1 ? `${variantCount} posters / folded stack` : "single poster",
           alt: `${title}, ${group.year}`,
           year: group.year,
@@ -2202,7 +2236,7 @@ function initPosterDrawer() {
     location.textContent = activePoster.year;
     category.textContent = activePoster.images.length > 1 ? "variant set" : "single poster";
     details.textContent = "";
-    description.textContent = "";
+    description.textContent = activePoster.description || "";
     credits.textContent = "";
     awards.textContent = "";
     author.textContent = "liulian";
