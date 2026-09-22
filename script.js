@@ -2861,20 +2861,24 @@ function initHomeProjectMetadata() {
     "body[data-page='home'] .cover-cloud-card[href*='project.html?slug=']",
   );
 
-  cards.forEach((card) => {
+  cards.forEach((card, index) => {
     if (card.querySelector(".cover-cloud-card-copy")) return;
 
     const url = new URL(card.getAttribute("href"), window.location.href);
     const project = projectMap.get(url.searchParams.get("slug"));
     if (!project) return;
+    const featuredSummary = card.classList.contains("cover-cloud-card-featured")
+      ? `<span class="cover-cloud-card-summary">${escapeHtml(project.summary)}</span>`
+      : "";
 
     card.insertAdjacentHTML(
       "beforeend",
       `
         <div class="cover-cloud-card-copy">
-          <span class="cover-cloud-card-index">${escapeHtml(project.number)}</span>
+          <span class="cover-cloud-card-index">${String(index + 1).padStart(2, "0")}</span>
           <div>
             <strong>${escapeHtml(project.title)}</strong>
+            ${featuredSummary}
           </div>
           <p>${escapeHtml(project.discipline)}</p>
         </div>
