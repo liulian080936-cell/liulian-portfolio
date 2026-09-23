@@ -696,15 +696,6 @@ let scrambledTextRefreshHandle = 0;
 let scrambledTextInitialized = false;
 const scrambledTextRoots = new Map();
 const pendingScrambledScopes = new Set();
-const targetCursorSelector = "a, button, [role='button'], .cursor-target";
-const targetCursorFrameSelector = [
-  ".poster-card-visual",
-  ".project-case-lead-media",
-  ".project-gallery-media",
-  ".posters-band-strip",
-  ".card-media",
-  ".cover-cloud-card-media",
-].join(", ");
 const scrambledTextConfig = Object.freeze({
   radius: 110,
   duration: 0.95,
@@ -736,7 +727,6 @@ const scrambledTextIgnoredTags = new Set([
   "OPTION",
 ]);
 
-const lerp = (a, b, n) => (1 - n) * a + n * b;
 const encodeImagePath = (folder, file) => encodeURI(`${folder}/${file}`);
 
 function scheduleNonCriticalTask(task, timeout = 600) {
@@ -5228,213 +5218,6 @@ function initProjectDetailDrawer() {
   });
 }
 
-function initTargetCursor() {
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  if (!window.matchMedia("(pointer: fine)").matches) return;
-  if (!window.matchMedia("(min-width: 960px)").matches) return;
-
-  const root = document.documentElement;
-  root.classList.add("has-target-cursor");
-
-  const cornerSize = 12;
-  const borderWidth = 3;
-  const hoverInset = borderWidth;
-  const cursorFollowStrength = 0.38;
-  const defaultCornerPositions = [
-    { x: -cornerSize * 1.5, y: -cornerSize * 1.5 },
-    { x: cornerSize * 0.5, y: -cornerSize * 1.5 },
-    { x: cornerSize * 0.5, y: cornerSize * 0.5 },
-    { x: -cornerSize * 1.5, y: cornerSize * 0.5 },
-  ];
-
-  const cursor = document.createElement("div");
-  cursor.className = "target-cursor";
-  cursor.setAttribute("aria-hidden", "true");
-  cursor.innerHTML = `
-    <div class="target-cursor-visual">
-      <div class="target-cursor-dot"></div>
-      <div class="target-cursor-corner corner-tl"></div>
-      <div class="target-cursor-corner corner-tr"></div>
-      <div class="target-cursor-corner corner-br"></div>
-      <div class="target-cursor-corner corner-bl"></div>
-    </div>
-  `;
-
-  document.body.appendChild(cursor);
-
-  const visual = cursor.querySelector(".target-cursor-visual");
-  const corners = Array.from(cursor.querySelectorAll(".target-cursor-corner"));
-
-  let mouseX = window.innerWidth * 0.5;
-  let mouseY = window.innerHeight * 0.5;
-  let renderedX = mouseX;
-  let renderedY = mouseY;
-  let isVisible = false;
-  let renderFrameId = 0;
-  let activeTarget = null;
-  let activeFrame = null;
-
-  const setVisible = (visible) => {
-    isVisible = visible;
-    cursor.classList.toggle("is-visible", visible);
-  };
-
-  const isValidTarget = (node) => {
-    if (!(node instanceof Element)) return false;
-    if (!node.matches(targetCursorSelector)) return false;
-    if (node.hasAttribute("disabled")) return false;
-    return node.getAttribute("aria-hidden") !== "true";
-  };
-
-  const resolveTargetFrame = (target, source = null) => {
-    if (!(target instanceof Element)) return null;
-
-    const sourceFrame =
-      source instanceof Element ? source.closest(targetCursorFrameSelector) : null;
-    if (sourceFrame && target.contains(sourceFrame)) {
-      return sourceFrame;
-    }
-
-    if (target.matches(targetCursorFrameSelector)) {
-      return target;
-    }
-
-    return target.querySelector(targetCursorFrameSelector) || target;
-  };
-
-  const setCornerPositions = (positions) => {
-    corners.forEach((corner, index) => {
-      const point = positions[index];
-      if (!point) return;
-      corner.style.transform = `translate3d(${point.x}px, ${point.y}px, 0)`;
-    });
-  };
-
-  const render = () => {
-    renderFrameId = 0;
-    renderedX = lerp(renderedX, mouseX, cursorFollowStrength);
-    renderedY = lerp(renderedY, mouseY, cursorFollowStrength);
-
-    cursor.style.transform = `translate3d(${renderedX}px, ${renderedY}px, 0)`;
-
-    if (activeFrame) {
-      const rect = activeFrame.getBoundingClientRect();
-      if (rect) {
-        setCornerPositions([
-          { x: rect.left - renderedX - hoverInset, y: rect.top - renderedY - hoverInset },
-          {
-            x: rect.right - renderedX - cornerSize + hoverInset,
-            y: rect.top - renderedY - hoverInset,
-          },
-          {
-            x: rect.right - renderedX - cornerSize + hoverInset,
-            y: rect.bottom - renderedY - cornerSize + hoverInset,
-          },
-          {
-            x: rect.left - renderedX - hoverInset,
-            y: rect.bottom - renderedY - cornerSize + hoverInset,
-          },
-        ]);
-      }
-    }
-
-    if (Math.abs(renderedX - mouseX) > 0.08 || Math.abs(renderedY - mouseY) > 0.08) {
-      renderFrameId = requestAnimationFrame(render);
-    }
-  };
-
-  const scheduleRender = () => {
-    if (renderFrameId) return;
-    renderFrameId = requestAnimationFrame(render);
-  };
-
-  const releaseTarget = () => {
-    activeTarget = null;
-    activeFrame = null;
-    cursor.classList.remove("is-targeting");
-    setCornerPositions(defaultCornerPositions);
-    scheduleRender();
-  };
-
-  const captureTarget = (target, source = null) => {
-    if (!isValidTarget(target)) return;
-
-    const frame = resolveTargetFrame(target, source);
-    if (!frame) return;
-    if (activeTarget === target && activeFrame === frame) return;
-
-    activeTarget = target;
-    activeFrame = frame;
-    cursor.classList.add("is-targeting");
-    scheduleRender();
-  };
-
-  const handleMouseMove = (event) => {
-    mouseX = event.clientX;
-    mouseY = event.clientY;
-
-    if (!isVisible) {
-      renderedX = mouseX;
-      renderedY = mouseY;
-      setVisible(true);
-    }
-
-    const hoveredSource = document.elementFromPoint(mouseX, mouseY);
-    const hoveredTarget =
-      hoveredSource instanceof Element
-        ? hoveredSource.closest(targetCursorSelector)
-        : null;
-
-    if (hoveredTarget) {
-      captureTarget(hoveredTarget, hoveredSource);
-    } else if (activeTarget) {
-      releaseTarget();
-    }
-
-    scheduleRender();
-  };
-
-  const handleWindowLeave = (event) => {
-    if (!event.relatedTarget) {
-      setVisible(false);
-      releaseTarget();
-    }
-  };
-
-  const handleScrollOrResize = () => {
-    if (!activeTarget) return;
-
-    const hovered = document.elementFromPoint(mouseX, mouseY);
-    const nextTarget =
-      hovered instanceof Element ? hovered.closest(targetCursorSelector) : null;
-
-    if (!nextTarget) {
-      releaseTarget();
-      return;
-    }
-
-    captureTarget(nextTarget, hovered);
-    scheduleRender();
-  };
-
-  window.addEventListener("mousemove", handleMouseMove);
-  window.addEventListener("mouseout", handleWindowLeave);
-  window.addEventListener("scroll", handleScrollOrResize, { passive: true });
-  window.addEventListener("resize", handleScrollOrResize);
-  window.addEventListener("mousedown", () => cursor.classList.add("is-pressed"));
-  window.addEventListener("mouseup", () => cursor.classList.remove("is-pressed"));
-  window.addEventListener("blur", () => {
-    setVisible(false);
-    releaseTarget();
-    cancelAnimationFrame(renderFrameId);
-    renderFrameId = 0;
-  });
-
-  setCornerPositions(defaultCornerPositions);
-  cursor.style.transform = `translate3d(${renderedX}px, ${renderedY}px, 0)`;
-  visual.style.setProperty("--target-cursor-spin-duration", "2s");
-}
-
 const choreographedRevealSelector = [
   ".editorial-hero-grid > *",
   ".posters-band-copy",
@@ -5823,7 +5606,6 @@ function initPage() {
     scheduleNonCriticalTask(() => {
       initPosterDrawer();
       initPosterPixelHover();
-      initTargetCursor();
     }, 260);
     return;
   }
@@ -5834,7 +5616,6 @@ function initPage() {
     initChoreographedMotion();
     scheduleNonCriticalTask(() => {
       initProjectDrawer();
-      initTargetCursor();
     }, 220);
     return;
   }
@@ -5856,14 +5637,10 @@ function initPage() {
     initChoreographedMotion();
     scheduleNonCriticalTask(() => {
       initHomeProjectPixelHover();
-      initTargetCursor();
     }, 700);
     return;
   }
 
-  scheduleNonCriticalTask(() => {
-    initTargetCursor();
-  }, 400);
   initFirstLoadTypedText();
   initChoreographedMotion();
 }

@@ -153,13 +153,6 @@ html {
   background: var(--bg);
 }
 
-@media (pointer: fine) {
-  html.has-target-cursor,
-  html.has-target-cursor * {
-    cursor: none !important;
-  }
-}
-
 body {
   margin: 0;
   overflow-x: clip;
@@ -2676,111 +2669,6 @@ body[data-page="project"] .project-image-trigger:focus-visible .project-gallery-
   body[data-page="project"] .project-gallery-card.is-closing-frame:focus-within .project-gallery-media {
     transform: none;
     box-shadow: none;
-  }
-}
-
-.target-cursor {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 0;
-  height: 0;
-  pointer-events: none;
-  z-index: 10000;
-  opacity: 0;
-  mix-blend-mode: difference;
-  transition: opacity 0.2s ease;
-  will-change: transform;
-}
-
-.target-cursor.is-visible {
-  opacity: 1;
-}
-
-/* The poster archive runs inside an iframe with its own live cursor. */
-body.poster-browser-open > .target-cursor {
-  visibility: hidden;
-  opacity: 0 !important;
-}
-
-.target-cursor-visual {
-  position: relative;
-  width: 0;
-  height: 0;
-  animation: target-cursor-spin var(--target-cursor-spin-duration, 2s) linear infinite;
-}
-
-.target-cursor.is-targeting .target-cursor-visual {
-  animation: none;
-  transform: none;
-}
-
-.target-cursor-dot {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 4px;
-  border-radius: 999px;
-  background: #ffffff;
-  transform: translate(-50%, -50%);
-  transition:
-    transform 0.2s ease,
-    background-color 0.15s ease;
-}
-
-.target-cursor-corner {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 12px;
-  height: 12px;
-  border: 3px solid #ffffff;
-  transition:
-    transform 90ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    border-color 0.15s ease;
-  will-change: transform;
-}
-
-.target-cursor.is-targeting .target-cursor-corner {
-  transition-duration: 70ms;
-}
-
-.target-cursor.is-pressed .target-cursor-visual {
-  transform: scale(0.92);
-}
-
-.target-cursor.is-pressed .target-cursor-dot {
-  transform: translate(-50%, -50%) scale(0.72);
-}
-
-.corner-tl {
-  border-right: none;
-  border-bottom: none;
-}
-
-.corner-tr {
-  border-left: none;
-  border-bottom: none;
-}
-
-.corner-br {
-  border-left: none;
-  border-top: none;
-}
-
-.corner-bl {
-  border-right: none;
-  border-top: none;
-}
-
-@keyframes target-cursor-spin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
   }
 }
 
