@@ -785,7 +785,7 @@ function initHomeLoadingScreen() {
   const body = document.body;
   const startTime = performance.now();
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const isDesktop = window.matchMedia("(min-width: 960px)").matches;
+  const isDesktop = window.matchMedia("(min-width: 961px)").matches;
 
   if (prefersReducedMotion) {
     body.classList.add("is-home-loading");
@@ -806,8 +806,8 @@ function initHomeLoadingScreen() {
   }
 
   const hasVideo = video instanceof HTMLVideoElement;
-  const minDuration = isDesktop ? 900 : 1500;
-  const maxDuration = isDesktop ? 2400 : 7000;
+  const minDuration = 900;
+  const maxDuration = 2400;
   const preCompleteCap = prefersReducedMotion ? 95 : 97;
   const waitingForVideoCap = prefersReducedMotion ? 24 : 32;
   const preVideoDisplayCap = prefersReducedMotion ? 5 : 4;
@@ -817,28 +817,29 @@ function initHomeLoadingScreen() {
   const introProgressCap = prefersReducedMotion ? 16 : 18;
   const regularDisplayRate = prefersReducedMotion ? 0.08 : 0.04;
   const finishDisplayRate = prefersReducedMotion ? 0.2 : 0.24;
-  const completionHoldDuration = isDesktop ? 120 : 180;
-  const exitDuration = isDesktop ? 780 : 420;
+  const completionHoldDuration = 120;
+  const exitDuration = 780;
   const completionSnapThreshold = 99.4;
   const formatCountUpValue = createCountUpFormatter(0, 100);
-  const trackedImages = Array.from(
-    document.querySelectorAll(
-      [
-        "body[data-page='home'] .posters-band-strip .poster-thumb:nth-child(-n+2) img",
-        `body[data-page='home'] .cover-cloud-reference .cover-cloud-card:nth-child(-n+${isDesktop ? 2 : 4}) img`,
-      ].join(", "),
-    ),
-  );
+  const trackedImageSelectors = [
+    "body[data-page='home'] .posters-band-strip .poster-thumb:nth-child(-n+2) img",
+  ];
+  if (isDesktop) {
+    trackedImageSelectors.push(
+      "body[data-page='home'] .cover-cloud-reference .cover-cloud-card:nth-child(-n+2) img",
+    );
+  }
+  const trackedImages = Array.from(document.querySelectorAll(trackedImageSelectors.join(", ")));
   const videoStartTime = 0.5;
   const videoCompletionThreshold = 0.985;
-  const videoPlaybackRate = isDesktop ? 3.5 : 2;
+  const videoPlaybackRate = 3.5;
 
   let trackedAssetCount = trackedImages.length;
   let loadedAssetCount = 0;
   let actualProgress = hasVideo ? 1 : trackedAssetCount ? 6 : 22;
   let displayedProgress = 1;
-  // Desktop content is already parsed here; unrelated resources must not hold the intro open.
-  let pageLoaded = isDesktop || document.readyState === "complete";
+  // The page is parsed here; unrelated resources must not hold the intro open.
+  let pageLoaded = true;
   let finishRequested = false;
   let exitTriggered = false;
   let completionHoldStart = null;
