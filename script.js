@@ -785,6 +785,7 @@ function initHomeLoadingScreen() {
   const body = document.body;
   const startTime = performance.now();
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const isDesktop = window.matchMedia("(min-width: 960px)").matches;
 
   if (prefersReducedMotion) {
     body.classList.add("is-home-loading");
@@ -805,8 +806,8 @@ function initHomeLoadingScreen() {
   }
 
   const hasVideo = video instanceof HTMLVideoElement;
-  const minDuration = prefersReducedMotion ? 900 : 1500;
-  const maxDuration = 7000;
+  const minDuration = isDesktop ? 900 : 1500;
+  const maxDuration = isDesktop ? 2400 : 7000;
   const preCompleteCap = prefersReducedMotion ? 95 : 97;
   const waitingForVideoCap = prefersReducedMotion ? 24 : 32;
   const preVideoDisplayCap = prefersReducedMotion ? 5 : 4;
@@ -816,27 +817,28 @@ function initHomeLoadingScreen() {
   const introProgressCap = prefersReducedMotion ? 16 : 18;
   const regularDisplayRate = prefersReducedMotion ? 0.08 : 0.04;
   const finishDisplayRate = prefersReducedMotion ? 0.2 : 0.24;
-  const completionHoldDuration = prefersReducedMotion ? 120 : 180;
-  const exitDuration = 420;
+  const completionHoldDuration = isDesktop ? 120 : 180;
+  const exitDuration = isDesktop ? 780 : 420;
   const completionSnapThreshold = 99.4;
   const formatCountUpValue = createCountUpFormatter(0, 100);
   const trackedImages = Array.from(
     document.querySelectorAll(
       [
         "body[data-page='home'] .posters-band-strip .poster-thumb:nth-child(-n+2) img",
-        "body[data-page='home'] .cover-cloud-reference .cover-cloud-card:nth-child(-n+4) img",
+        `body[data-page='home'] .cover-cloud-reference .cover-cloud-card:nth-child(-n+${isDesktop ? 2 : 4}) img`,
       ].join(", "),
     ),
   );
   const videoStartTime = 0.5;
   const videoCompletionThreshold = 0.985;
-  const videoPlaybackRate = prefersReducedMotion ? 1 : 2;
+  const videoPlaybackRate = isDesktop ? 3.5 : 2;
 
   let trackedAssetCount = trackedImages.length;
   let loadedAssetCount = 0;
   let actualProgress = hasVideo ? 1 : trackedAssetCount ? 6 : 22;
   let displayedProgress = 1;
-  let pageLoaded = document.readyState === "complete";
+  // Desktop content is already parsed here; unrelated resources must not hold the intro open.
+  let pageLoaded = isDesktop || document.readyState === "complete";
   let finishRequested = false;
   let exitTriggered = false;
   let completionHoldStart = null;
@@ -4003,8 +4005,12 @@ function initAboutDrawer() {
     closeDrawer();
   });
 
+  document.addEventListener("home:close-about", () => {
+    closeDrawer({ restoreFocus: false });
+  });
+
   window.addEventListener("keydown", (event) => {
-    if (drawer.hidden) return;
+    if (drawer.getAttribute("aria-hidden") !== "false") return;
     if (event.key !== "Escape") return;
     closeDrawer();
   });
@@ -4051,6 +4057,7 @@ function initPosterBrowserDrawer() {
   };
 
   const openDrawer = (source = null) => {
+    document.dispatchEvent(new Event("home:close-about"));
     window.clearTimeout(closeTimer);
     window.clearTimeout(openTimer);
     lastActiveElement = source instanceof HTMLElement
@@ -4266,6 +4273,7 @@ function initProjectBrowserDrawer() {
   };
 
   const openDrawer = () => {
+    document.dispatchEvent(new Event("home:close-about"));
     window.clearTimeout(closeTimer);
     lastActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : trigger;
     drawer.removeAttribute("inert");
