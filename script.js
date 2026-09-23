@@ -1682,11 +1682,9 @@ function initHomePosterMarquee() {
               class="poster-thumb"
               type="button"
               data-poster-key="${escapeHtml(poster.key)}"
-              data-poster-label="${escapeHtml(poster.title)}"
               data-group-index="${poster.groupIndex}"
               data-poster-index="${poster.posterIndex}"
-              aria-label="${escapeHtml(poster.title)}，点击锁定并打开海报详情"
-              aria-pressed="false"
+              aria-label="查看${escapeHtml(poster.title)}海报详情"
               ${duplicate ? 'tabindex="-1"' : ""}
             >
               <img
@@ -1763,16 +1761,11 @@ function initHomePosterMarquee() {
         && Boolean(selectedKey)
         && card.dataset.posterKey === selectedKey;
       card.classList.toggle("is-selected", isSelected);
-      card.setAttribute("aria-pressed", String(isSelected));
-      card.setAttribute(
-        "aria-label",
-        `${card.dataset.posterLabel || "Selected poster"}，${isSelected ? "已选中，海报详情已打开" : "点击锁定并打开海报详情"}`,
-      );
     });
     strip.classList.toggle("is-paused", persistentlyPaused);
     strip.classList.toggle("is-hover-paused", isHovered || hasFocusedPoster);
     status.textContent = persistentlyPaused
-      ? "海报滚动已锁定，正在显示所选海报详情"
+      ? "海报详情已打开，海报滚动已暂停"
       : isHovered || hasFocusedPoster
         ? "海报滚动正在平滑减速"
         : "海报正在无缝滚动";
